@@ -4,10 +4,15 @@
 
 ### Table of Content
 
- - [Requirement](#Requirement)
+ - [Requirement](#req)
+ - [Visual Studio 2022](#vs)
+ - [libpaxos<sup>3</sup>](#paxos)
  - [WSL](#WSL)
+ - [CMake](#CMake)
+ - [Libraries](#Livraries)
 
-#### Requirement
+ 
+#### <a id='req'>Requirement</a>
 
 This is just a list and the installation of all thi requirement will be after this chapter.
 
@@ -21,7 +26,7 @@ This is just a list and the installation of all thi requirement will be after th
 
  In this project there is no LMDB included. That means 
 
-#### Visual Studio 2022
+#### <a id='vs'>Visual Studio 2022</a>
 
 Here is a small guide to install VS 2022:
 
@@ -29,7 +34,7 @@ https://github.com/MicrosoftDocs/cpp-docs/blob/main/docs/build/vscpp-step-0-inst
 
 From here we work with VS 2022.
 
-#### libpaxos
+#### <a id='paxos'>libpaxos<sup>3</sup></a>
 
 In requirements I linked the page to libpaxos. You will land on a page with multiple versions of Paxos. 
 Follow the link to [libpaxos<sup>3</sup>](https://libpaxos.sourceforge.net/paxos_projects.php#libpaxos3).
@@ -93,7 +98,7 @@ PS currentPath> wsl --install -d Ubuntu
  ```bash
  username@system:/pathToLibpaxos$
  ```
- 
+
  Following steps are needed:
 
  1. First we get CMake first:
@@ -106,4 +111,30 @@ PS currentPath> wsl --install -d Ubuntu
  username@system:/pathToLibpaxos$ sudo apt-get install build-essential
  ```
 
- libevent and msgpack.
+ #### Libraries
+
+ We still need libraries befor we can build or do anything else.
+ libevent, msgpack and gtest are needed for that:
+
+ ```bash
+ username@system:/pathToLibpaxos$ sudo apt-get install libevent-dev
+ username@system:/pathToLibpaxos$ sudo apt-get install libmsgpack-dev
+ username@system:/pathToLibpaxos$ sudo apt-get install libgtest-dev
+ ```
+
+ CMake will find this libraries in the process. Now we can build up the project.
+ For that create a folder build and switch to it:
+
+ ```bash
+ username@system:/pathToLibpaxos$ mkdir build
+ username@system:/pathToLibpaxos$ cd build
+ ```
+
+Alternativ:
+
+```bash
+username@system:/pathToLibpaxos$ mkdir build && cd build
+```
+
+This structure will make the process easier to work with.
+From here the nect step would be 
