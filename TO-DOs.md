@@ -60,4 +60,5 @@ user@system: PathToLibpaxos/build$ sudo apt-get install libgtest-dev
 user@system: PathToLibpaxos/build$ cmake ..
 user@system: PathToLibpaxos/build$ make
 ```
-
+config_unittest.cc
+replica_unittest.cc
