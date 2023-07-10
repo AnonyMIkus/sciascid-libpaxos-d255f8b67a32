@@ -7,9 +7,9 @@
  - [Requirement](#req)
  - [Visual Studio 2022](#vs)
  - [libpaxos<sup>3</sup>](#paxos)
- - [WSL](#WSL)
- - [CMake](#CMake)
- - [Libraries](#Livraries)
+ - [WSL 2](#wsl)
+ - [CMake](#cmake)
+ - [Libraries, Build & Test](#rest)
 
  
 #### <a id='req'>Requirement</a>
@@ -42,7 +42,7 @@ You can either use git-command in terminal to download or with clone-button when
 The file will a similar name that begings with sciascid-libpaxos-< combination of number and letters >
 Open folder with VS 2022.
 
-#### WSL
+#### <a id='wsl'>WSL 2</a>
 
 You start with an opened VS 2022.
 
@@ -80,7 +80,7 @@ PS currentPath> wsl --install -d Ubuntu
  > You will not see anything when typing a password.
  > Type password as you would normally do and memorize it in some way.
 
- #### CMake
+ #### <a id='cmake'>CMake</a>
 
  If you installed Ubuntu from the previous step then VS 2022 is switching to WSL automatically.
 
@@ -111,7 +111,7 @@ PS currentPath> wsl --install -d Ubuntu
  username@system:/pathToLibpaxos$ sudo apt-get install build-essential
  ```
 
- #### Libraries
+ #### <a id='rest'>Libraries, Build & Test</a>
 
  We still need libraries befor we can build or do anything else.
  libevent, msgpack and gtest are needed for that:
@@ -137,4 +137,17 @@ username@system:/pathToLibpaxos$ mkdir build && cd build
 ```
 
 This structure will make the process easier to work with.
-From here the nect step would be 
+From here the next step would be to build.
+
+```bash
+username@system:/pathToLibpaxos/build$ cmake ..
+username@system:/pathToLibpaxos/build$ make
+```
+
+You can testing test (that are in folder unit) with following command:
+
+```bash
+username@system:/pathToLibpaxos/build$ ctest -VV
+```
+
+``-VV`` allows an verbos output of the test.
