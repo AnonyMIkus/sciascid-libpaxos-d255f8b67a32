@@ -28,6 +28,7 @@
 
 #include "proposer.h"
 #include "gtest/gtest.h"
+#include <stdio.h>
 
 #define CHECK_ACCEPT(r, i, b, v, s) {         \
 	ASSERT_EQ(r.iid, i);                      \
@@ -38,7 +39,7 @@
 
 class ProposerTest : public testing::Test {
 protected:
-
+	int counter = 0;
 	int quorum;
 	struct proposer* p;
 	static const int id = 2;
@@ -99,6 +100,8 @@ TEST_F(ProposerTest, Prepare) {
 		ASSERT_EQ(pr.ballot, id + MAX_N_OF_PROPOSERS);
 	}
 	ASSERT_EQ(count, proposer_prepared_count(p));
+	counter = counter + count;
+	printf("%d\n", counter);
 }
 
 TEST_F(ProposerTest, IgnoreOldBallots) {
