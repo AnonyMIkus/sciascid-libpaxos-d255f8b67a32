@@ -1,6 +1,6 @@
 Zu erreichende Ziele
-- [ ] Überprüfen, ob alle Kommanden[^1] im Manual landen.
-- [ ] Manual für Installationen möglichst fertig schreiben.
+- [x] Überprüfen, ob alle Kommanden[^1] im Manual landen.
+- [x] Manual für Installationen möglichst fertig schreiben.
 - [ ] Komponentendiagramm
     - [ ] Mit eigenen Komponenten erweitern.
     - [ ] Text für das Verstädnis hinzufügen.
@@ -9,12 +9,12 @@ Zu erreichende Ziele
     - [ ] Präsentation für 17.07.2023
 
 Optionale Ziele
-- [ ] Test für Programm verstehen. [Zu den Hinweisen für die Tests](#Test)
+- [x] Test für Programm verstehen. [Zu den Hinweisen für die Tests](#Test)
 - [ ] Einen kleinen Test schreiben.
     - [ ] Schauen, ob es möglich ist Logs anzulegen und wichtige Informationen darin zu hinterlegen.
-- [ ] Im Ordner gtest nach hilfreichen Informationen durchsuchen.
+- [x] Im Ordner gtest nach hilfreichen Informationen durchsuchen.
 
-## Test
+## <a id='Test'>Test</a>
 
 GTest ist eine API zum Testen von Funktionen
 Der Ordner ***conf*** stellt die Konfiguration des Emulators bereit, die mindestens notwendig sind um den Emulator lauffähig zu machen.
