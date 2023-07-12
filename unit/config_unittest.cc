@@ -3,10 +3,7 @@
 
 TEST(ConfigTest, TooManyProcesses) {
 	struct evpaxos_config* config;
-	/* config = evpaxos_config_read("config/too-many.conf");
-	* Running on Problems on faster PC. Original code in previous line.
-	*/
-	config = evpaxos_config_read("config/replicas");
+	config = evpaxos_config_read("config/too-many.conf");
 	ASSERT_EQ(NULL, config);
 }
 
