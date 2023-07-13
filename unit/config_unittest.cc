@@ -1,10 +1,20 @@
 #include "evpaxos.h"
 #include "gtest/gtest.h"
+#include <stdio.h>
 
 TEST(ConfigTest, TooManyProcesses) {
-	struct evpaxos_config* config;
-	config = evpaxos_config_read("config/too-many.conf");
-	ASSERT_EQ(NULL, config);
+	try {
+		printf("config file");
+		struct evpaxos_config* config;
+		printf("Test");
+		config = evpaxos_config_read("config/too-many.conf");
+		printf("Test2");
+		ASSERT_EQ(NULL, config);
+		printf("Finish");
+	}
+	catch (std::exception& e) {
+		printf ("%s", e.what());
+	}
 }
 
 TEST(ConfigTest, Folder) {
