@@ -1,17 +1,17 @@
 Zu erreichende Ziele
 - [x] Überprüfen, ob alle Kommanden[^1] im Manual landen.
 - [x] Manual für Installationen möglichst fertig schreiben.
-- [ ] Komponentendiagramm
-    - [ ] Mit eigenen Komponenten erweitern.
-    - [ ] Text für das Verstädnis hinzufügen.
+- [x] Komponentendiagramm
+    - [x] Mit eigenen Komponenten erweitern.
+    - [x] Text für das Verstädnis hinzufügen.
 - [ ] PowerPoint Präsentationen
     - [ ] Die letzte Präsentation ergänzen mit Infos.
     - [ ] Präsentation für 17.07.2023
 
 Optionale Ziele
 - [x] Test für Programm verstehen. [Zu den Hinweisen für die Tests](#Test)
-- [ ] Einen kleinen Test schreiben.
-    - [ ] Schauen, ob es möglich ist Logs anzulegen und wichtige Informationen darin zu hinterlegen.
+- [x] Einen kleinen Test schreiben.
+    - [x] Schauen, ob es möglich ist Logs anzulegen und wichtige Informationen darin zu hinterlegen.
 - [x] Im Ordner gtest nach hilfreichen Informationen durchsuchen.
 
 ## <a id='Test'>Test</a>
