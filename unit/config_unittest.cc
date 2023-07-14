@@ -1,6 +1,5 @@
 #include "evpaxos.h"
 #include "gtest/gtest.h"
-#include <stdio.h>
 
 TEST(ConfigTest, TooManyProcesses) {
 	try {
