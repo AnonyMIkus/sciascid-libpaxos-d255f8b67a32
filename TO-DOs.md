@@ -62,3 +62,7 @@ user@system: PathToLibpaxos/build$ make
 ```
 config_unittest.cc
 replica_unittest.cc
+
+	//config_unittest.cc storage_unittest.cc replica_unittest.cc
+
+    libboost-all-dev

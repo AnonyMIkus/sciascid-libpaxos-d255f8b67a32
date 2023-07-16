@@ -150,4 +150,4 @@ You can testing test (that are in folder unit) with following command:
 username@system:/pathToLibpaxos/build$ ctest -VV
 ```
 
-``-VV`` allows an verbos output of the test.
+``-VV`` allows an extra verbos output of the test.

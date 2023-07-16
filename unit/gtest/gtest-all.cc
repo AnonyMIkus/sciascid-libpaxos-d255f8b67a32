@@ -564,7 +564,8 @@ class GTestFlagSaver {
   // The c'tor.
   GTestFlagSaver() {
     also_run_disabled_tests_ = GTEST_FLAG(also_run_disabled_tests);
-    break_on_failure_ = GTEST_FLAG(break_on_failure);
+    break_on_failure_ = false;
+//    break_on_failure_ = GTEST_FLAG(break_on_failure);
     catch_exceptions_ = GTEST_FLAG(catch_exceptions);
     color_ = GTEST_FLAG(color);
     death_test_style_ = GTEST_FLAG(death_test_style);
