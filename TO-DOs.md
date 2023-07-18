@@ -1,4 +1,4 @@
-Zu erreichende Ziele
+Zu erreichende Ziele 17.07.2023
 - [x] Überprüfen, ob alle Kommanden[^1] im Manual landen.
 - [x] Manual für Installationen möglichst fertig schreiben.
 - [x] Komponentendiagramm
@@ -66,3 +66,9 @@ replica_unittest.cc
 	//config_unittest.cc storage_unittest.cc replica_unittest.cc
 
     libboost-all-dev
+
+Ziele
+- [ ] peers umprogrammieren
+- [ ] Delegator programmieren
+- [ ] Evdelegator progrmammieren
+- [ ] Exposé schreiben
