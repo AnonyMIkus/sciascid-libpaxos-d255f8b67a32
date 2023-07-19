@@ -72,3 +72,5 @@ Ziele
 - [ ] Delegator programmieren
 - [ ] Evdelegator progrmammieren
 - [ ] Exposé schreiben
+
+C:\Program Files\Microsoft Visual Studio\2022\Community\SDK\ScopeCppSDK\vc15\SDK\include\um
