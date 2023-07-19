@@ -1,16 +1,12 @@
 #include "paxos.h"
 #include "evpaxos.h"
-#include <arpa/inet.h>
-#include <netcx/shared/1.0/net/virtualaddress.h>
-#include <net/ethernet.h>
-#include <sys/socket.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include <ctype.h>
 #include <errno.h>
-#include <netdb.h>
-#include <sys/types.h>
-#include <netinet/in.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <arpa/inet.h>
 
 struct address
 {
@@ -18,7 +14,7 @@ struct address
 	int port;
 };
 
-struct evpaxos_config
+struct evpaxos_config2
 {
 	int proposers_count;
 	int acceptors_count;
@@ -99,17 +95,46 @@ void init_config() {
 	}
 
 	fclose(f);
-	int count = c->acceptors_count + c->proposers_count;
-	char listOfAddr[count];
-
-	for (int i = 0; i < count; i++)
-	{
-		
-	}
 	return c;
 
 failure:
 	free(c);
 	if (f != NULL) fclose(f);
 	return NULL;
+}
+
+/*static void
+address_init(struct address* a, char* addr, int port)
+{
+	a->addr = strdup(addr);
+	a->port = port;
+}
+
+static void
+address_free(struct address* a)
+{
+	free(a->addr);
+}
+
+static void
+address_copy(struct address* src, struct address* dst)
+{
+	address_init(dst, src->addr, src->port);
+}
+
+static struct sockaddr_in
+address_to_sockaddr(struct address* a)
+{
+	struct sockaddr_in addr;
+	memset(&addr, 0, sizeof(struct sockaddr_in));
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(a->port);
+	addr.sin_addr.s_addr = inet_addr(a->addr);
+	return addr;
+}*/
+
+static void init_virtual_network() 
+{
+	struct evpaxos_config config = init_config();
+	config
 }
