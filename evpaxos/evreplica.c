@@ -40,6 +40,16 @@ struct evpaxos_replica
 	void* arg;
 };
 
+struct evpaxos_parms
+{
+	int id;
+	struct expaxos_config* config;
+	deliver_function f;
+	void* arg:
+	struct event_base* base;
+
+};
+
 static void
 evpaxos_replica_deliver(unsigned iid, char* value, size_t size, void* arg)
 {
@@ -50,14 +60,21 @@ evpaxos_replica_deliver(unsigned iid, char* value, size_t size, void* arg)
 }
 
 struct evpaxos_replica*
-evpaxos_replica_init(int id, const char* config_file, deliver_function f,
+	evpaxos_replica_init_thread(struct evpaxos_parms* p)
+{
+	return evpaxos_replica_init(p->id,p->config,p->f,p->arg,p->base)
+}
+
+
+struct evpaxos_replica*
+evpaxos_replica_init(int id, struct evpaxos_config* c, deliver_function f,
 	void* arg, struct event_base* base)
 {
 	struct evpaxos_replica* r;
 	struct evpaxos_config* config;
 	r = malloc(sizeof(struct evpaxos_replica));
 	
-	config = evpaxos_config_read(config_file);
+	config = c;
 	
 	r->peers = peers_new(base, config);
 	peers_connect_to_acceptors(r->peers);
@@ -76,7 +93,7 @@ evpaxos_replica_init(int id, const char* config_file, deliver_function f,
 		return NULL;
 	}
 	
-	evpaxos_config_free(config);
+//	evpaxos_config_free(config);
 	return r;
 }
 

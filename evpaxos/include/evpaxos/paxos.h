@@ -41,6 +41,7 @@ struct evlearner;
 struct evproposer;
 struct evacceptor;
 struct evpaxos_replica;
+struct evpaxos_parms;
 
 /**
  * When starting a learner you must pass a callback to be invoked whenever
@@ -67,8 +68,12 @@ typedef void (*deliver_function)(
  *
  * @see evpaxos_replica_free()
  */
-struct evpaxos_replica* evpaxos_replica_init(int id, const char* config,
+struct evpaxos_replica* evpaxos_replica_init(int id,struct evpaxos_config* config,
 	deliver_function cb, void* arg, struct event_base* base);
+/* 
+	the same as above but specified for threads 
+*/
+struct evpaxos_replica* evpaxos_replica_init_thread(struct evpaxos_parms* parms);
 
 /**
  * Destroy a Paxos replica and free all its memory.

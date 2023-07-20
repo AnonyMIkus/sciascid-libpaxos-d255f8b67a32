@@ -37,11 +37,6 @@
 #include <event2/listener.h>
 #include <netinet/tcp.h>
 
-
-struct flags 
-{
-};
-
 struct peer
 {
 	int id;

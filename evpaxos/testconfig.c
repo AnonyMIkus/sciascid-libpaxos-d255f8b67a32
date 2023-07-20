@@ -103,7 +103,7 @@ failure:
 	return NULL;
 }
 
-/*static void
+static void
 address_init(struct address* a, char* addr, int port)
 {
 	a->addr = strdup(addr);
@@ -125,16 +125,11 @@ address_copy(struct address* src, struct address* dst)
 static struct sockaddr_in
 address_to_sockaddr(struct address* a)
 {
+
 	struct sockaddr_in addr;
 	memset(&addr, 0, sizeof(struct sockaddr_in));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(a->port);
 	addr.sin_addr.s_addr = inet_addr(a->addr);
 	return addr;
-}*/
-
-static void init_virtual_network() 
-{
-	struct evpaxos_config config = init_config();
-	config
 }
