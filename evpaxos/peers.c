@@ -37,11 +37,9 @@
 #include <event2/listener.h>
 #include <netinet/tcp.h>
 
-struct virtual_peer
-{
-	int id;
-	struct peers** peers;
 
+struct flags 
+{
 };
 
 struct peer
@@ -88,19 +86,6 @@ static void on_accept(struct evconnlistener* l, evutil_socket_t fd,
 	struct sockaddr* addr, int socklen, void* arg);
 static void socket_set_nodelay(int fd);
 
-struct virtual_peer* virtual_peer_new(int id, peers* peers)
-{
-	struct virtual_peer* vpeer = malloc(sizeof(struct virtual_peer));
-	vpeer->id = id;
-	vpeer->peers = peers;
-	return vpeer;
-}
-
-void virtual_peer_free(struct virtual_peer* vpeer)
-{
-	free(vpeer);
-}
-
 struct peers*
 	peers_new(struct event_base* base, struct evpaxos_config* config)
 {
@@ -132,9 +117,6 @@ peers_count(struct peers* p)
 	return p->peers_count;
 }
 
-/*
-* Hier legen wir die Verbindung zu einem festgelegten Ziel.
-*/
 static void
 peers_connect(struct peers* p, int id, struct sockaddr_in* addr)
 {
