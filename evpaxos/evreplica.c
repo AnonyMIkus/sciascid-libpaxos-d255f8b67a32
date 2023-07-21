@@ -45,9 +45,8 @@ struct evpaxos_parms
 	int id;
 	struct expaxos_config* config;
 	deliver_function f;
-	void* arg:
+	void* arg;
 	struct event_base* base;
-
 };
 
 static void
@@ -62,7 +61,7 @@ evpaxos_replica_deliver(unsigned iid, char* value, size_t size, void* arg)
 struct evpaxos_replica*
 	evpaxos_replica_init_thread(struct evpaxos_parms* p)
 {
-	return evpaxos_replica_init(p->id,p->config,p->f,p->arg,p->base)
+	return evpaxos_replica_init(p->id, p->config, p->f, p->arg, p->base);
 }
 
 
