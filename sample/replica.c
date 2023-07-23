@@ -54,7 +54,7 @@ static void
 deliver(unsigned iid, char* value, size_t size, void* arg)
 {
 	struct client_value* val = (struct client_value*)value;
-	printf("%ld.%06d [%.16s] %ld bytes\n", val->t.tv_sec, val->t.tv_usec,
+	printf("%ld.%06ld[%.16s] %ld bytes\n", val->t.tv_sec, val->t.tv_usec,
 		val->value, (long)val->size);
 }
 
@@ -65,12 +65,15 @@ start_replica(int id, const char* config)
 	struct event_base* base;
 	struct evpaxos_replica* replica;
 	deliver_function cb = NULL;
+	struct evpaxos_config* cfg;
 
 	if (verbose)
 		cb = deliver;
 	
 	base = event_base_new();
-	replica = evpaxos_replica_init(id, config, cb, NULL, base);
+
+	cfg = evpaxos_config_read(config);
+	replica = evpaxos_replica_init(id, cfg, cb, NULL, base);
 	
 	if (replica == NULL) {
 		printf("Could not start the replica!\n");
@@ -86,6 +89,7 @@ start_replica(int id, const char* config)
 	event_free(sig);
 	evpaxos_replica_free(replica);
 	event_base_free(base);
+	evpaxos_config_free(cfg);
 }
 
 static void

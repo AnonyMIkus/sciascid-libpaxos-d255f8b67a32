@@ -54,7 +54,7 @@ static void
 deliver(unsigned iid, char* value, size_t size, void* arg)
 {
 	struct client_value* val = (struct client_value*)value;
-	printf("%ld.%06d [%.16s] %ld bytes\n", val->t.tv_sec, val->t.tv_usec,
+	printf("%ld.%06ld [%.16s] %ld bytes\n", val->t.tv_sec, val->t.tv_usec,
 		val->value, (long)val->size);
 }
 
@@ -64,7 +64,7 @@ start_replica(int id, const char* config)
 	struct event* sig;
 	struct event_base* base;
 	struct evpaxos_replica* replica;
-	struct evpaxos_config* config;
+	struct evpaxos_config* cfg;
 
 	deliver_function cb = NULL;
 
@@ -73,18 +73,13 @@ start_replica(int id, const char* config)
 
 	base = event_base_new();
 
-	config = evpaxos_config_read(config_file);
+	cfg = evpaxos_config_read(config);
 
 //	replica = evpaxos_replica_init(id, config, cb, NULL, base);
 
-	struct evpaxos_parms* p= alloc(sizeof(struct evpaxos_parms));
-	p->id = id;
-	p->config = config;
-	p->f = cb;
-	p->arg = NULL;
-	p->base = base;
+	struct evpaxos_parms* p= evpaxos_alloc_parms(id,cfg,cb,NULL,base);
 
-	replica = evpaxos_replica_init(p);
+	replica = evpaxos_replica_init_thread(p);
 
 	free(p);
 
@@ -103,7 +98,7 @@ start_replica(int id, const char* config)
 	event_free(sig);
 	evpaxos_replica_free(replica);
 	event_base_free(base);
-	evpaxos_config_free(config);
+	evpaxos_config_free(cfg);
 }
 
 static void

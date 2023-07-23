@@ -43,11 +43,24 @@ struct evpaxos_replica
 struct evpaxos_parms
 {
 	int id;
-	struct expaxos_config* config;
+	struct evpaxos_config* config;
 	deliver_function f;
 	void* arg;
 	struct event_base* base;
 };
+
+struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config,
+	deliver_function cb, void* arg, struct event_base* base)
+{
+	struct evpaxos_parms* p=malloc(sizeof(struct evpaxos_parms));
+	if (!p) return p;
+	p->id = id;
+	p->config = config;
+	p->f = cb;
+	p->arg = arg;
+	p->base = base;
+	return p;
+}
 
 static void
 evpaxos_replica_deliver(unsigned iid, char* value, size_t size, void* arg)
@@ -58,16 +71,13 @@ evpaxos_replica_deliver(unsigned iid, char* value, size_t size, void* arg)
 		r->deliver(iid, value, size, r->arg);
 }
 
-struct evpaxos_replica*
-	evpaxos_replica_init_thread(struct evpaxos_parms* p)
+struct evpaxos_replica* evpaxos_replica_init_thread(struct evpaxos_parms* p)
 {
-	return evpaxos_replica_init(p->id, p->config, p->f, p->arg, p->base);
+	struct evpaxos_replica* r = evpaxos_replica_init(p->id, p->config, p->f, p->arg, p->base);
+	return r;
 }
 
-
-struct evpaxos_replica*
-evpaxos_replica_init(int id, struct evpaxos_config* c, deliver_function f,
-	void* arg, struct event_base* base)
+struct evpaxos_replica* evpaxos_replica_init(int id, struct evpaxos_config* c, deliver_function f, void* arg, struct event_base* base)
 {
 	struct evpaxos_replica* r;
 	struct evpaxos_config* config;

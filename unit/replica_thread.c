@@ -59,7 +59,8 @@ replica_thread_create(struct replica_thread* self, int id, const char* config,
 	self->delivery_count = delivery_count;
 	self->delivery_values = calloc(delivery_count, sizeof(int));
 	self->base = event_base_new();
-	self->replica = evpaxos_replica_init(id, config, replica_thread_deliver,
+	struct evpaxos_config* cfg = evpaxos_config_read(config);
+	self->replica = evpaxos_replica_init(id, cfg, replica_thread_deliver,
 		self, self->base);
 	pthread_create(&self->thread, NULL, replica_thread_run, self);
 }

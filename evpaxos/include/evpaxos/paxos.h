@@ -42,6 +42,7 @@ struct evproposer;
 struct evacceptor;
 struct evpaxos_replica;
 struct evpaxos_parms;
+struct evpaxos_config;
 
 /**
  * When starting a learner you must pass a callback to be invoked whenever
@@ -52,7 +53,11 @@ typedef void (*deliver_function)(
 	char* value,
 	size_t size,
 	void* arg);
-
+/*
+*	Allocates param struct for threading
+*/
+struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config,
+	deliver_function cb, void* arg, struct event_base* base);
 /**
  * Create a Paxos replica, consisting of a collocated Acceptor, Proposer,
  * and Learner.

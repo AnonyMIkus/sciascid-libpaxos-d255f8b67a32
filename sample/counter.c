@@ -145,11 +145,13 @@ start_replica(int id, const char* config)
 	struct event* sig;
 	struct event_base* base;
 	struct counter_replica replica;
+	struct evpaxos_config* cfg;
 	
 	base = event_base_new();
 	
-	replica.id = id;	
-	replica.paxos_replica = evpaxos_replica_init(id, config, on_deliver, 
+	replica.id = id;
+	cfg = evpaxos_config_read(config);
+	replica.paxos_replica = evpaxos_replica_init(id, cfg, on_deliver, 
 		&replica, base);
 	
 	if (replica.paxos_replica == NULL) {
@@ -176,6 +178,7 @@ start_replica(int id, const char* config)
 	event_free(replica.client_ev);
 	evpaxos_replica_free(replica.paxos_replica);
 	event_base_free(base);
+	free(cfg);
 }
 
 int
