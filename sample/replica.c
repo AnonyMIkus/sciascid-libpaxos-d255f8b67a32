@@ -69,11 +69,12 @@ start_replica(int id, const char* config)
 
 	if (verbose)
 		cb = deliver;
-	
+	printf("assign base\n");
 	base = event_base_new();
-
+	printf("Test\n");
 	cfg = evpaxos_config_read(config);
-	return; 
+	printf("Test finish\n");
+
 	replica = evpaxos_replica_init(id, cfg, cb, NULL, base);
 	
 	if (replica == NULL) {
@@ -116,12 +117,12 @@ main(int argc, char const *argv[])
 	printf("Finish read: %s\nAdditional arguments: %d\n", argv[0], id);
 	if (argc >= 3 && argv[2][0] != '-') {
 		config = argv[2];
-		printf("%s",argv[2]);
-		printf("argc length: %d\ncurrent i: %d\nconfig: %s", argc, i, config);
+		printf("%s\n",argv[2]);
+		printf("argc length: %d\ncurrent i: %d\nconfig: %s\n", argc, i, config);
 		i++;
-		printf("%d", i);
+		printf("%d\n", i);
 	}
-	printf("Last segment.");
+	printf("Last segment.\n");
 	while (i != argc) {
 		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
 			usage(argv[0]);
@@ -130,9 +131,10 @@ main(int argc, char const *argv[])
 		else
 			usage(argv[0]);
 		i++;
+		printf("true");
 	}
-
+	printf("Start Replica.\n");
 	start_replica(id, config);
-	
+	printf("finished\n");
 	return 0;
 }

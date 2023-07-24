@@ -95,7 +95,10 @@ struct evpaxos_replica* evpaxos_replica_init(int id, struct evpaxos_config* c, d
 	r->deliver = f;
 	r->arg = arg;
 
+	printf("\nGot id %d", id);
+
 	int port = evpaxos_acceptor_listen_port(config, id);
+	printf("\nGot port%d", port);
 	if (peers_listen(r->peers, port) == 0) {
 		evpaxos_config_free(config);
 		evpaxos_replica_free(r);

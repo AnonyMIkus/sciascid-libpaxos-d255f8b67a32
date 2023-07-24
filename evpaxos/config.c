@@ -112,22 +112,20 @@ evpaxos_config_read(const char* path)
 		paxos_log_error("Error: %s is not a regular file\n", path);
 		goto failure;
 	}
-	
 	c = malloc(sizeof(struct evpaxos_config));
 	if (c == NULL) {
 		perror("malloc");
 		goto failure;
 	}
 	memset(c, 0, sizeof(struct evpaxos_config));
-	
 	while (fgets(line, sizeof(line), f) != NULL) {
-		if (line[0] != '#' && line[0] != '\n') {
+		if (line[0] != '#' && line[0] != '\n' && line[0] != '\r') {
 			if (parse_line(c, line) == 0) {
 				paxos_log_error("Please, check line %d\n", linenumber);
 				paxos_log_error("Error parsing config file %s\n", path);
 				goto failure;
 			}
-		}
+		};
 		linenumber++;
 	}
 
@@ -256,6 +254,7 @@ parse_address(char* str, struct address* addr)
 	int port;
 	char address[128];
 	int rv = sscanf(str, "%d %s %d", &id, address, &port);
+	printf("\nparsed %d-%s-%d", id, address, port);
 	if (rv == 3) {
 		address_init(addr, address, port);
 		return 1;
@@ -302,7 +301,7 @@ parse_line(struct evpaxos_config* c, char* line)
 	char* tok;
 	char* sep = " ";
 	struct option* opt;
-	
+
 	line = strtrim(line);
 	tok = strsep(&line, sep);
 	
@@ -339,7 +338,7 @@ parse_line(struct evpaxos_config* c, char* line)
 		address_copy(pro_addr, acc_addr);
 		return rv;
 	}
-	
+
 	line = strtrim(line);
 	opt = lookup_option(tok);
 	if (opt == NULL)
