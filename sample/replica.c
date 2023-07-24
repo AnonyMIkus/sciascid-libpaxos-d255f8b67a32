@@ -73,6 +73,7 @@ start_replica(int id, const char* config)
 	base = event_base_new();
 
 	cfg = evpaxos_config_read(config);
+	return; 
 	replica = evpaxos_replica_init(id, cfg, cb, NULL, base);
 	
 	if (replica == NULL) {
@@ -108,15 +109,19 @@ main(int argc, char const *argv[])
 	int i = 2;
 	const char* config = "../paxos.conf";
 
+	printf("Start reading arguments.\n");
 	if (argc < 2)
 		usage(argv[0]);
-
 	id = atoi(argv[1]);
+	printf("Finish read: %s\nAdditional arguments: %d\n", argv[0], id);
 	if (argc >= 3 && argv[2][0] != '-') {
 		config = argv[2];
+		printf("%s",argv[2]);
+		printf("argc length: %d\ncurrent i: %d\nconfig: %s", argc, i, config);
 		i++;
+		printf("%d", i);
 	}
-
+	printf("Last segment.");
 	while (i != argc) {
 		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
 			usage(argv[0]);

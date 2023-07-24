@@ -3,6 +3,7 @@ include_directories(${CMAKE_SOURCE_DIR}/evpaxos/include)
 include_directories(${LIBEVENT_INCLUDE_DIRS})
 
 set(TEST_SOURCES learner.c acceptor.c proposer.c client.c replica.c counter.c replica2.c)
+#set(SRCS)
 
 foreach(p ${TEST_SOURCES})
 	get_filename_component(target "${p}" NAME_WE)
