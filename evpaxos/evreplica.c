@@ -74,6 +74,7 @@ evpaxos_replica_deliver(unsigned iid, char* value, size_t size, void* arg)
 struct evpaxos_replica* evpaxos_replica_init_thread(struct evpaxos_parms* p)
 {
 	struct evpaxos_replica* r = evpaxos_replica_init(p->id, p->config, p->f, p->arg, p->base);
+	
 	return r;
 }
 
