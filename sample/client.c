@@ -71,16 +71,25 @@ struct client
 	struct evlearner* learner;
 };
 
-static void
-handle_sigint(int sig, short ev, void* arg)
+/// <summary>
+/// Output on incoming signals and exit loop.
+/// </summary>
+/// <param name="sig">=> Incoming signal</param>
+/// <param name="ev">=> No usage found</param>
+/// <param name="arg">=> More Arguments; Base</param>
+static void handle_sigint(int sig, short ev, void* arg)
 {
 	struct event_base* base = arg;
 	printf("Caught signal %d\n", sig);
 	event_base_loopexit(base, NULL);
 }
 
-static void
-random_string(char *s, const int len)
+/// <summary>
+/// Generate a random string on given length.
+/// </summary>
+/// <param name="s"></param>
+/// <param name="len"></param>
+static void random_string(char *s, const int len)
 {
 	int i;
 	static const char alphanum[] =
@@ -88,10 +97,10 @@ random_string(char *s, const int len)
 	for (i = 0; i < len-1; ++i)
 		s[i] = alphanum[rand() % (sizeof(alphanum) - 1)];
 	s[len-1] = 0;
+	// No return here because we get string-on-reference.
 }
 
-static void
-client_submit_value(struct client* c)
+static void client_submit_value(struct client* c)
 {
 	struct client_value* v = (struct client_value*)c->send_buffer;
 	v->client_id = c->id;
@@ -103,8 +112,7 @@ client_submit_value(struct client* c)
 }
 
 // Returns t2 - t1 in microseconds.
-static long
-timeval_diff(struct timeval* t1, struct timeval* t2)
+static long timeval_diff(struct timeval* t1, struct timeval* t2)
 {
 	long us;
 	us = (t2->tv_sec - t1->tv_sec) * 1e6;
@@ -113,8 +121,7 @@ timeval_diff(struct timeval* t1, struct timeval* t2)
 	return us;
 }
 
-static void
-update_stats(struct stats* stats, struct client_value* delivered, size_t size)
+static void update_stats(struct stats* stats, struct client_value* delivered, size_t size)
 {
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
@@ -129,8 +136,7 @@ update_stats(struct stats* stats, struct client_value* delivered, size_t size)
 		stats->max_latency = lat;
 }
 
-static void
-on_deliver(unsigned iid, char* value, size_t size, void* arg)
+static void on_deliver(unsigned iid, char* value, size_t size, void* arg)
 {
 	struct client* c = arg;
 	struct client_value* v = (struct client_value*)value;
@@ -140,8 +146,7 @@ on_deliver(unsigned iid, char* value, size_t size, void* arg)
 	}
 }
 
-static void
-on_stats(evutil_socket_t fd, short event, void *arg)
+static void on_stats(evutil_socket_t fd, short event, void *arg)
 {
 	struct client* c = arg;
 	double mbps = (double)(c->stats.delivered_bytes * 8) / (1024*1024);
@@ -152,8 +157,13 @@ on_stats(evutil_socket_t fd, short event, void *arg)
 	event_add(c->stats_ev, &c->stats_interval);
 }
 
-static void
-on_connect(struct bufferevent* bev, short events, void* arg)
+/// <summary>
+/// Function 
+/// </summary>
+/// <param name="bev"></param>
+/// <param name="events"></param>
+/// <param name="arg"></param>
+static void on_connect(struct bufferevent* bev, short events, void* arg)
 {
 	int i;
 	struct client* c = arg;
@@ -166,8 +176,14 @@ on_connect(struct bufferevent* bev, short events, void* arg)
 	}
 }
 
-static struct bufferevent* 
-connect_to_proposer(struct client* c, const char* config, int proposer_id)
+/// <summary>
+/// Connecting to a proposer.
+/// </summary>
+/// <param name="c">Client that is currently assigning.</param>
+/// <param name="config">Path to paxos.conf</param>
+/// <param name="proposer_id">Proposer ID</param>
+/// <returns>Bufferevent to listen to.</returns>
+static struct bufferevent* connect_to_proposer(struct client* c, const char* config, int proposer_id)
 {
 	struct bufferevent* bev;
 	struct evpaxos_config* conf = evpaxos_config_read(config);
@@ -185,19 +201,26 @@ connect_to_proposer(struct client* c, const char* config, int proposer_id)
 	return bev;
 }
 
-static struct client*
-make_client(const char* config, int proposer_id, int outstanding, int value_size)
+/// <summary>
+/// Assigning parameters to a client.
+/// </summary>
+/// <param name="config">´Path to paxos.conf</param>
+/// <param name="proposer_id">Proposer ID</param>
+/// <param name="outstanding"></param>
+/// <param name="value_size"></param>
+/// <returns>Client with assigned attributes, learner and signal.</returns>
+static struct client* make_client(const char* config, int proposer_id, int outstanding, int value_size)
 {
 	struct client* c;
 	c = malloc(sizeof(struct client));
-	c->base = event_base_new();
+	c->base = event_base_new(); // Have to look up event_base_new() / libevent.
 	
 	memset(&c->stats, 0, sizeof(struct stats));
 	c->bev = connect_to_proposer(c, config, proposer_id);
-	if (c->bev == NULL)
+	if (c->bev == NULL) // Exit if proposer do not exist.
 		exit(1);
 	
-	c->id = rand();
+	c->id = rand(); // ´Get random ID.
 	c->value_size = value_size;
 	c->outstanding = outstanding;
 	c->send_buffer = malloc(sizeof(struct client_value) + value_size);
@@ -207,7 +230,7 @@ make_client(const char* config, int proposer_id, int outstanding, int value_size
 	event_add(c->stats_ev, &c->stats_interval);
 	
 	paxos_config.learner_catch_up = 0;
-	c->learner = evlearner_init(config, on_deliver, c, c->base);
+	c->learner = evlearner_init(config, on_deliver, c, c->base); // Assigning a learner to the client.
 	
 	c->sig = evsignal_new(c->base, SIGINT, handle_sigint, c->base);
 	evsignal_add(c->sig, NULL);
@@ -215,8 +238,11 @@ make_client(const char* config, int proposer_id, int outstanding, int value_size
 	return c;
 }
 
-static void
-client_free(struct client* c)
+/// <summary>
+/// Destruct given client.
+/// </summary>
+/// <param name="c"></param>
+static void client_free(struct client* c)
 {
 	free(c->send_buffer);
 	bufferevent_free(c->bev);
@@ -228,8 +254,14 @@ client_free(struct client* c)
 	free(c);
 }
 
-static void
-start_client(const char* config, int proposer_id, int outstanding, int value_size)
+/// <summary>
+/// Starting client with given parameters. Assigning paramters in function make_client().
+/// </summary>
+/// <param name="config">Path to paxos.conf</param>
+/// <param name="proposer_id">Proposer we want to connect</param>
+/// <param name="outstanding"></param>
+/// <param name="value_size"></param>
+static void start_client(const char* config, int proposer_id, int outstanding, int value_size)
 {
 	struct client* client;
 	client = make_client(config, proposer_id, outstanding, value_size);
@@ -238,8 +270,11 @@ start_client(const char* config, int proposer_id, int outstanding, int value_siz
 	client_free(client);
 }
 
-static void
-usage(const char* name)
+/// <summary>
+/// It shows the correct usage/call.
+/// </summary>
+/// <param name="prog">Program that is called from.</param>
+static void usage(const char* name)
 {
 	printf("Usage: %s [path/to/paxos.conf] [-h] [-o] [-v] [-p]\n", name);
 	printf("  %-30s%s\n", "-h, --help", "Output this message and exit");
@@ -249,8 +284,15 @@ usage(const char* name)
 	exit(1);
 }
 
-int
-main(int argc, char const *argv[])
+/// <summary>
+/// It is a main function solely to run a stand-alone client.
+/// 
+/// Example: ./sample/client ../paxos.conf -o OUTSTAND_AS_INT -v VALUE-SIZE_AS_INT --proposer-id ID/POSITION_AS_INT
+/// </summary>
+/// <param name="argc">Number of parameter for the main function.</param>
+/// <param name="argv">Array of all paramter given to the main function</param>
+/// <returns>An int value that shows if main is successful.</returns>
+int main(int argc, char const *argv[])
 {
 	int i = 1;
 	int proposer_id = 0;

@@ -42,24 +42,39 @@ struct client_value
 
 static int verbose = 0;
 
-static void
-handle_sigint(int sig, short ev, void* arg)
+/// <summary>
+/// Output on incoming signals and exit loop.
+/// </summary>
+/// <param name="sig">=> Incoming signal</param>
+/// <param name="ev">=> No usage found</param>
+/// <param name="arg">=> More Arguments; Base</param>
+static void handle_sigint(int sig, short ev, void* arg)
 {
 	struct event_base* base = arg;
 	printf("Caught signal %d\n", sig);
 	event_base_loopexit(base, NULL);
 }
 
-static void
-deliver(unsigned iid, char* value, size_t size, void* arg)
+/// <summary>
+/// 
+/// </summary>
+/// <param name="iid">=> Instance ID</param>
+/// <param name="value">=> Value to propose</param>
+/// <param name="size">=> Size of value that is moved</param>
+/// <param name="arg">=> more Arguments; No usage found.</param>
+static void deliver(unsigned iid, char* value, size_t size, void* arg)
 {
 	struct client_value* val = (struct client_value*)value;
 	printf("%ld.%06ld[%.16s] %ld bytes\n", val->t.tv_sec, val->t.tv_usec,
 		val->value, (long)val->size);
 }
 
-static void
-start_replica(int id, const char* config)
+/// <summary>
+/// Set up and start replica. It reads the configuration with evpaxos_config_read (config.c) and initialize it with ecpaxos_replica_init ().
+/// </summary>
+/// <param name="id">Replica ID</param>
+/// <param name="config">Path of paxos.conf</param>
+static void start_replica(int id, const char* config)
 {
 	struct event* sig;
 	struct event_base* base;
@@ -69,19 +84,16 @@ start_replica(int id, const char* config)
 
 	if (verbose)
 		cb = deliver;
-	printf("assign base\n");
 	base = event_base_new();
-	printf("Test\n");
 	cfg = evpaxos_config_read(config);
-	printf("Test finish\n");
 
 	replica = evpaxos_replica_init(id, cfg, cb, NULL, base);
-	
+
 	if (replica == NULL) {
 		printf("Could not start the replica!\n");
 		exit(1);
 	}
-	
+
 	sig = evsignal_new(base, SIGINT, handle_sigint, base);
 	evsignal_add(sig, NULL);
 
@@ -94,8 +106,11 @@ start_replica(int id, const char* config)
 	evpaxos_config_free(cfg);
 }
 
-static void
-usage(const char* prog)
+/// <summary>
+/// It shows the correct usage/call.
+/// </summary>
+/// <param name="prog">Program that is called from.</param>
+static void usage(const char* prog)
 {
 	printf("Usage: %s id [path/to/paxos.conf] [-h] [-s]\n", prog);
 	printf("  %-30s%s\n", "-h, --help", "Output this message and exit");
@@ -103,27 +118,35 @@ usage(const char* prog)
 	exit(1);
 }
 
-int
-main(int argc, char const *argv[])
+/// <summary>
+/// It is a main function solely to run a stand-alone replica.
+/// 
+/// Example: ./sample/replica 0 ../paxos.conf
+/// </summary>
+/// <param name="argc">Number of parameter for the main function.</param>
+/// <param name="argv">Array of all paramter given to the main function</param>
+/// <returns>An int value that shows if main is successful.</returns>
+int main(int argc, char const* argv[])
 {
 	int id;
 	int i = 2;
 	const char* config = "../paxos.conf";
 
-	printf("Start reading arguments.\n");
+	/*
+	* argv[0] => Program itself.
+	* argv[1] => ID for replica. It works as position in paxos.conf at the same time
+	* argv[2] => Path to paxos.conf;
+	*/
 	if (argc < 2)
 		usage(argv[0]);
 	id = atoi(argv[1]);
-	printf("Finish read: %s\nAdditional arguments: %d\n", argv[0], id);
 	if (argc >= 3 && argv[2][0] != '-') {
 		config = argv[2];
-		printf("%s\n",argv[2]);
 		printf("argc length: %d\ncurrent i: %d\nconfig: %s\n", argc, i, config);
 		i++;
-		printf("%d\n", i);
 	}
-	printf("Last segment.\n");
-	while (i != argc) {
+	printf("\nLast segment.");
+	while (i != argc) { // It checks if -h or -v are given as additional parameters. If there too many parameters or -h (independent of number of parameters) then it show how it is used.
 		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
 			usage(argv[0]);
 		else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0)
@@ -131,10 +154,9 @@ main(int argc, char const *argv[])
 		else
 			usage(argv[0]);
 		i++;
-		printf("true");
 	}
-	printf("Start Replica.\n");
-	start_replica(id, config);
+	printf("\nStart Replica.");
+	start_replica(id, config); // Start process for replica.
 	printf("finished\n");
 	return 0;
 }

@@ -31,16 +31,25 @@
 #include <evpaxos.h>
 #include <signal.h>
 
-static void
-handle_sigint(int sig, short ev, void* arg)
+ /// <summary>
+ /// Output on incoming signals and exit loop.
+ /// </summary>
+ /// <param name="sig">=> Incoming signal</param>
+ /// <param name="ev">=> No usage found</param>
+ /// <param name="arg">=> More Arguments; Base</param>
+static void handle_sigint(int sig, short ev, void* arg)
 {
 	struct event_base* base = arg;
 	printf("Caught signal %d\n", sig);
 	event_base_loopexit(base, NULL);
 }
 
-static void
-start_proposer(const char* config, int id)
+/// <summary>
+/// Create a propser that ist waiting for events to handle it,
+/// </summary>
+/// <param name="config">Path to paxos.config</param>
+/// <param name="id">Given ID</param>
+static void start_proposer(const char* config, int id)
 {
 	struct event* sig;
 	struct event_base* base;
@@ -64,8 +73,15 @@ start_proposer(const char* config, int id)
 	event_base_free(base);
 }
 
-int
-main (int argc, char const *argv[])
+/// <summary>
+/// It is a main function solely to run a stand-alone proposer.
+/// 
+/// Example: ./sample/proposer 0 ../paxos.conf
+/// </summary>
+/// <param name="argc">Number of parameter for the main function.</param>
+/// <param name="argv">Array of all paramter given to the main function</param>
+/// <returns>An int value that shows if main is successful.</returns>
+int main (int argc, char const *argv[])
 {
 	int id;
 	const char* config = "../paxos.conf";
