@@ -25,12 +25,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#define MAX_N_OF_THREADS 100
 
 #include <evpaxos.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
 #include <string.h>
+#include <pthread.h>
+
 
 struct client_value
 {
@@ -59,11 +62,10 @@ deliver(unsigned iid, char* value, size_t size, void* arg)
 }
 
 static void
-start_replica(int id, const char* config)
+start_replica(int id, const char* config,pthread_t* ref)
 {
 	struct event* sig;
 	struct event_base* base;
-	struct evpaxos_replica* replica;
 	struct evpaxos_config* cfg;
 
 	deliver_function cb = NULL;
@@ -74,17 +76,22 @@ start_replica(int id, const char* config)
 	base = event_base_new();
 
 	cfg = evpaxos_config_read(config);
-
 //	replica = evpaxos_replica_init(id, config, cb, NULL, base);
+	pthread_cond_t terminate;
+	pthread_cond_init(&terminate, NULL);
 
-	struct evpaxos_parms* p= evpaxos_alloc_parms(id,cfg,cb,NULL,base);
 
-	replica = evpaxos_replica_init_thread(p);
+	struct evpaxos_parms* p = evpaxos_alloc_parms(id, cfg, cb, NULL, base,&terminate);
 
+
+	int i = 0;
+	
+
+	int rc = evpaxos_replica_init_thread(&(ref[i]),p);
 	free(p);
 
 
-	if (replica == NULL) {
+	if (rc!=0) {
 		printf("Could not start the replica!\n");
 		exit(1);
 	}
@@ -94,9 +101,7 @@ start_replica(int id, const char* config)
 
 	signal(SIGPIPE, SIG_IGN);
 	event_base_dispatch(base);
-
 	event_free(sig);
-	evpaxos_replica_free(replica);
 	event_base_free(base);
 	evpaxos_config_free(cfg);
 }
@@ -136,7 +141,11 @@ main(int argc, char const* argv[])
 		i++;
 	}
 
-	start_replica(id, config);
+	pthread_t* threads = calloc(MAX_N_OF_THREADS, sizeof(pthread_t));
+
+	start_replica(id, config,threads);
+
+	free(threads);
 
 	return 0;
 }

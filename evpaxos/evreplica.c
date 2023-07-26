@@ -48,18 +48,20 @@ struct evpaxos_parms
 	deliver_function f;
 	void* arg;
 	struct event_base* base;
+	pthread_cond_t* terminate;
 };
 
 struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config,
-	deliver_function cb, void* arg, struct event_base* base)
+	deliver_function cb, void* arg, struct event_base* base, pthread_cond_t* iterm)
 {
-	struct evpaxos_parms* p=malloc(sizeof(struct evpaxos_parms));
+	struct evpaxos_parms* p = malloc(sizeof(struct evpaxos_parms));
 	if (!p) return p;
 	p->id = id;
 	p->config = config;
 	p->f = cb;
 	p->arg = arg;
 	p->base = base;
+	p->terminate = iterm;
 	return p;
 }
 
@@ -72,12 +74,22 @@ evpaxos_replica_deliver(unsigned iid, char* value, size_t size, void* arg)
 		r->deliver(iid, value, size, r->arg);
 }
 
-struct evpaxos_replica* evpaxos_replica_init_thread(struct evpaxos_parms* p)
+void* evpaxos_replica_init_thread_start(void* inp)
 {
-	//pthread_t replica_thread;
+	struct evpaxos_parms* p = (struct evpaxos_parms*)inp;
 	struct evpaxos_replica* r = evpaxos_replica_init(p->id, p->config, p->f, p->arg, p->base);
-	//pthread_create(&replica_thread, NULL, ,NULL);
-	return r;
+	pt
+	evpaxos_replica_free(r);
+	return NULL;
+}
+
+int evpaxos_replica_init_thread(void* inref,struct evpaxos_parms* p)
+{
+	pthread_t* ref = (pthread_t*)inref;
+	int rc = pthread_create(ref, NULL, evpaxos_replica_init_thread_start, (void*)p);
+	pthread_cond_wait(p->terminate, NULL);
+
+	return rc;
 }
 
 struct evpaxos_replica* evpaxos_replica_init(int id, struct evpaxos_config* c, deliver_function f, void* arg, struct event_base* base)

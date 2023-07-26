@@ -57,7 +57,7 @@ typedef void (*deliver_function)(
 *	Allocates param struct for threading
 */
 struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config,
-	deliver_function cb, void* arg, struct event_base* base);
+	deliver_function cb, void* arg, struct event_base* base, pthread_cond_t* iterm);
 /**
  * Create a Paxos replica, consisting of a collocated Acceptor, Proposer,
  * and Learner.
@@ -78,7 +78,7 @@ struct evpaxos_replica* evpaxos_replica_init(int id,struct evpaxos_config* confi
 /* 
 	the same as above but specified for threads 
 */
-struct evpaxos_replica* evpaxos_replica_init_thread(struct evpaxos_parms* parms);
+int evpaxos_replica_init_thread(void* ref,struct evpaxos_parms* parms);
 
 /**
  * Destroy a Paxos replica and free all its memory.

@@ -60,7 +60,7 @@ struct client
 {
 	int id;
 	int value_size;
-	int outstanding;
+	int outstanding; // Number of Request??
 	char* send_buffer;
 	struct stats stats;
 	struct event_base* base;
@@ -101,7 +101,7 @@ static void random_string(char *s, const int len)
 }
 
 /// <summary>
-/// Assign random value and submit a message.
+/// Assign random value and submit a message to Proposer
 /// </summary>
 /// <param name="c">Client that submit value</param>
 static void client_submit_value(struct client* c)
@@ -125,6 +125,12 @@ static long timeval_diff(struct timeval* t1, struct timeval* t2)
 	return us;
 }
 
+/// <summary>
+/// 
+/// </summary>
+/// <param name="stats"></param>
+/// <param name="delivered"></param>
+/// <param name="size"></param>
 static void update_stats(struct stats* stats, struct client_value* delivered, size_t size)
 {
 	struct timeval tv;
@@ -143,8 +149,8 @@ static void update_stats(struct stats* stats, struct client_value* delivered, si
 /// <summary>
 /// 
 /// </summary>
-/// <param name="iid"></param>
-/// <param name="value"></param>
+/// <param name="iid">Instance ID</param>
+/// <param name="value">Value</param>
 /// <param name="size"></param>
 /// <param name="arg"></param>
 static void on_deliver(unsigned iid, char* value, size_t size, void* arg)
@@ -157,6 +163,12 @@ static void on_deliver(unsigned iid, char* value, size_t size, void* arg)
 	}
 }
 
+/// <summary>
+/// Printing latest statisitc for client.
+/// </summary>
+/// <param name="fd">event_base (libevent)</param>
+/// <param name="event">event</param>
+/// <param name="arg">client</param>
 static void on_stats(evutil_socket_t fd, short event, void *arg)
 {
 	struct client* c = arg;
@@ -169,11 +181,11 @@ static void on_stats(evutil_socket_t fd, short event, void *arg)
 }
 
 /// <summary>
-/// Function 
+/// Handling on connect to a proposer and start requesting.
 /// </summary>
-/// <param name="bev"></param>
-/// <param name="events"></param>
-/// <param name="arg"></param>
+/// <param name="bev">Bufferevent</param>
+/// <param name="events">Events</param>
+/// <param name="arg">Further arguments (most likely client)</param>
 static void on_connect(struct bufferevent* bev, short events, void* arg)
 {
 	int i;
