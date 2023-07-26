@@ -100,6 +100,10 @@ static void random_string(char *s, const int len)
 	// No return here because we get string-on-reference.
 }
 
+/// <summary>
+/// Assign random value and submit a message.
+/// </summary>
+/// <param name="c">Client that submit value</param>
 static void client_submit_value(struct client* c)
 {
 	struct client_value* v = (struct client_value*)c->send_buffer;
@@ -136,6 +140,13 @@ static void update_stats(struct stats* stats, struct client_value* delivered, si
 		stats->max_latency = lat;
 }
 
+/// <summary>
+/// 
+/// </summary>
+/// <param name="iid"></param>
+/// <param name="value"></param>
+/// <param name="size"></param>
+/// <param name="arg"></param>
 static void on_deliver(unsigned iid, char* value, size_t size, void* arg)
 {
 	struct client* c = arg;
@@ -177,15 +188,15 @@ static void on_connect(struct bufferevent* bev, short events, void* arg)
 }
 
 /// <summary>
-/// Connecting to a proposer.
+/// Create socket and its attribut for bufferevent.
 /// </summary>
 /// <param name="c">Client that is currently assigning.</param>
 /// <param name="config">Path to paxos.conf</param>
 /// <param name="proposer_id">Proposer ID</param>
-/// <returns>Bufferevent to listen to.</returns>
+/// <returns>Socket for bufferevent to send values to.</returns>
 static struct bufferevent* connect_to_proposer(struct client* c, const char* config, int proposer_id)
 {
-	struct bufferevent* bev;
+	struct bufferevent* bev; // Socket and attributes to it.
 	struct evpaxos_config* conf = evpaxos_config_read(config);
 	if (conf == NULL) {
 		printf("Failed to read config file %s\n", config);
@@ -202,7 +213,7 @@ static struct bufferevent* connect_to_proposer(struct client* c, const char* con
 }
 
 /// <summary>
-/// Assigning parameters to a client.
+/// Assigning parameters to attributes of a client.
 /// </summary>
 /// <param name="config">´Path to paxos.conf</param>
 /// <param name="proposer_id">Proposer ID</param>
@@ -220,7 +231,7 @@ static struct client* make_client(const char* config, int proposer_id, int outst
 	if (c->bev == NULL) // Exit if proposer do not exist.
 		exit(1);
 	
-	c->id = rand(); // ´Get random ID.
+	c->id = rand(); // Get random ID.
 	c->value_size = value_size;
 	c->outstanding = outstanding;
 	c->send_buffer = malloc(sizeof(struct client_value) + value_size);
