@@ -48,11 +48,12 @@ struct evpaxos_parms
 	deliver_function f;
 	void* arg;
 	struct event_base* base;
-	pthread_cond_t* terminate;
+	pthread_t* thread;
+	pthread_mutex_t* tsync;
 };
 
 struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config,
-	deliver_function cb, void* arg, struct event_base* base, pthread_cond_t* iterm)
+	deliver_function cb, void* arg, struct event_base* base, pthread_mutex_t* isync)
 {
 	struct evpaxos_parms* p = malloc(sizeof(struct evpaxos_parms));
 	if (!p) return p;
@@ -61,12 +62,11 @@ struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config,
 	p->f = cb;
 	p->arg = arg;
 	p->base = base;
-	p->terminate = iterm;
+	p->tsync = isync;
 	return p;
 }
 
-static void
-evpaxos_replica_deliver(unsigned iid, char* value, size_t size, void* arg)
+static void evpaxos_replica_deliver(unsigned iid, char* value, size_t size, void* arg)
 {
 	struct evpaxos_replica* r = arg;
 	evproposer_set_instance_id(r->proposer, iid);
@@ -78,17 +78,17 @@ void* evpaxos_replica_init_thread_start(void* inp)
 {
 	struct evpaxos_parms* p = (struct evpaxos_parms*)inp;
 	struct evpaxos_replica* r = evpaxos_replica_init(p->id, p->config, p->f, p->arg, p->base);
-	pt
+	pthread_mutex_lock(p->tsync);
+	pthread_mutex_destroy(p->tsync);
 	evpaxos_replica_free(r);
 	return NULL;
 }
 
-int evpaxos_replica_init_thread(void* inref,struct evpaxos_parms* p)
+int evpaxos_replica_init_thread(void* inref, struct evpaxos_parms* p)
 {
 	pthread_t* ref = (pthread_t*)inref;
-	int rc = pthread_create(ref, NULL, evpaxos_replica_init_thread_start, (void*)p);
-	pthread_cond_wait(p->terminate, NULL);
-
+	p->thread = ref;
+	int rc = pthread_create(ref, NULL, evpaxos_replica_init_thread_start, (void*) p);
 	return rc;
 }
 
@@ -102,11 +102,9 @@ struct evpaxos_replica* evpaxos_replica_init(int id, struct evpaxos_config* c, d
 	
 	r->peers = peers_new(base, config);
 	peers_connect_to_acceptors(r->peers);
-	
 	r->acceptor = evacceptor_init_internal(id, config, r->peers);
 	r->proposer = evproposer_init_internal(id, config, r->peers);
-	r->learner  = evlearner_init_internal(config, r->peers,
-		evpaxos_replica_deliver, r);
+	r->learner  = evlearner_init_internal(config, r->peers, evpaxos_replica_deliver, r);
 	r->deliver = f;
 	r->arg = arg;
 
@@ -124,8 +122,7 @@ struct evpaxos_replica* evpaxos_replica_init(int id, struct evpaxos_config* c, d
 	return r;
 }
 
-void
-evpaxos_replica_free(struct evpaxos_replica* r)
+void evpaxos_replica_free(struct evpaxos_replica* r)
 {
 	if (r->learner)
 		evlearner_free_internal(r->learner);
@@ -135,29 +132,25 @@ evpaxos_replica_free(struct evpaxos_replica* r)
 	free(r);
 }
 
-void
-evpaxos_replica_set_instance_id(struct evpaxos_replica* r, unsigned iid)
+void evpaxos_replica_set_instance_id(struct evpaxos_replica* r, unsigned iid)
 {
 	if (r->learner)
 		evlearner_set_instance_id(r->learner, iid);
 	evproposer_set_instance_id(r->proposer, iid);
 }
 
-static void
-peer_send_trim(struct peer* p, void* arg)
+static void peer_send_trim(struct peer* p, void* arg)
 {
 	send_paxos_trim(peer_get_buffer(p), arg);
 }
 
-void
-evpaxos_replica_send_trim(struct evpaxos_replica* r, unsigned iid)
+void evpaxos_replica_send_trim(struct evpaxos_replica* r, unsigned iid)
 {
 	paxos_trim trim = {iid};
 	peers_foreach_acceptor(r->peers, peer_send_trim, &trim);
 }
 
-void
-evpaxos_replica_submit(struct evpaxos_replica* r, char* value, int size)
+void evpaxos_replica_submit(struct evpaxos_replica* r, char* value, int size)
 {
 	int i;
 	struct peer* p;
@@ -170,8 +163,7 @@ evpaxos_replica_submit(struct evpaxos_replica* r, char* value, int size)
 	}
 }
 
-int
-evpaxos_replica_count(struct evpaxos_replica* r)
+int evpaxos_replica_count(struct evpaxos_replica* r)
 {
 	return peers_count(r->peers);
 }

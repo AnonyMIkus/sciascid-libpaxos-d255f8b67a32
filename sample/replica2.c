@@ -62,7 +62,7 @@ deliver(unsigned iid, char* value, size_t size, void* arg)
 }
 
 static void
-start_replica(int id, const char* config,pthread_t* ref)
+start_replica(int id, const char* config,pthread_t* ref,pthread_mutex_t* syncs)
 {
 	struct event* sig;
 	struct event_base* base;
@@ -79,6 +79,7 @@ start_replica(int id, const char* config,pthread_t* ref)
 //	replica = evpaxos_replica_init(id, config, cb, NULL, base);
 	pthread_cond_t terminate;
 	pthread_cond_init(&terminate, NULL);
+	pthread_init
 
 
 	struct evpaxos_parms* p = evpaxos_alloc_parms(id, cfg, cb, NULL, base,&terminate);
@@ -142,8 +143,9 @@ main(int argc, char const* argv[])
 	}
 
 	pthread_t* threads = calloc(MAX_N_OF_THREADS, sizeof(pthread_t));
+	pthread_mutex_t* sýncs= calloc(MAX_N_OF_THREADS, sizeof(pthread_mutex_t))
 
-	start_replica(id, config,threads);
+	start_replica(id, config,threads,syncs);
 
 	free(threads);
 
