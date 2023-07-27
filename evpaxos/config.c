@@ -338,6 +338,19 @@ parse_line(struct evpaxos_config* c, char* line)
 		address_copy(pro_addr, acc_addr);
 		return rv;
 	}
+	/*if (strcasecmp(tok, "r") == 0 || strcasecmp(tok, "replica") == 0) {
+		if (c->proposers_count >= MAX_N_OF_PROPOSERS ||
+			c->acceptors_count >= MAX_N_OF_PROPOSERS) {
+			paxos_log_error("Number of replicas exceded maximum of: %d\n",
+				MAX_N_OF_PROPOSERS);
+			return 0;
+		}
+		struct address* pro_addr = &c->proposers[c->proposers_count++];
+		struct address* acc_addr = &c->acceptors[c->acceptors_count++];
+		int rv = parse_address(line, pro_addr);
+		address_copy(pro_addr, acc_addr);
+		return rv;
+	}*/
 
 	line = strtrim(line);
 	opt = lookup_option(tok);

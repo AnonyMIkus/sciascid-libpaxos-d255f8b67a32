@@ -78,7 +78,7 @@ struct evpaxos_replica* evpaxos_replica_init(int id,struct evpaxos_config* confi
 /* 
 	the same as above but specified for threads 
 */
-int evpaxos_replica_init_thread(void* ref,struct evpaxos_parms* parms);
+int evpaxos_replica_init_thread(void* ref,void* syncs,struct evpaxos_parms* parms);
 
 /**
  * Destroy a Paxos replica and free all its memory.

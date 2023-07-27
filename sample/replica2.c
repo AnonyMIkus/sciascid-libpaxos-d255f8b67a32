@@ -77,24 +77,12 @@ start_replica(int id, const char* config, pthread_t* ref, pthread_mutex_t* syncs
 
 	cfg = evpaxos_config_read(config);
 //	replica = evpaxos_replica_init(id, config, cb, NULL, base);
-	pthread_cond_t terminate;
-	pthread_cond_init(&terminate, NULL);
-	pthread_init();
-
-	
-
-	struct evpaxos_parms* p = evpaxos_alloc_parms(id, cfg, cb, NULL, base, &terminate);
 
 	int i = 0;
 	
-	int rc = evpaxos_replica_init_thread(&(ref[i]),p);
+	struct evpaxos_parms* p = evpaxos_alloc_parms(id, cfg, cb, NULL, base, &(syncs[i]));
+	evpaxos_replica_init_thread(&(ref[i]), &(syncs[i]),p);
 	free(p);
-
-
-	if (rc!=0) {
-		printf("Could not start the replica!\n");
-		exit(1);
-	}
 
 	sig = evsignal_new(base, SIGINT, handle_sigint, base);
 	evsignal_add(sig, NULL);
@@ -103,6 +91,12 @@ start_replica(int id, const char* config, pthread_t* ref, pthread_mutex_t* syncs
 	event_base_dispatch(base);
 	event_free(sig);
 	event_base_free(base);
+
+	i = 0;
+	pthread_mutex_unlock(&(syncs[i]));
+	pthread_join(ref[i],NULL);
+	pthread_detach(ref[i]);
+
 	evpaxos_config_free(cfg);
 }
 
@@ -142,11 +136,12 @@ main(int argc, char const* argv[])
 	}
 
 	pthread_t* threads = calloc(MAX_N_OF_THREADS, sizeof(pthread_t));
-	pthread_mutex_t* syncs = calloc(MAX_N_OF_THREADS, sizeof(pthread_mutex_t))
+	pthread_mutex_t* syncs = calloc(MAX_N_OF_THREADS, sizeof(pthread_mutex_t));
 
 	start_replica(id, config, threads, syncs);
 
 	free(threads);
+	free(syncs);
 
 	return 0;
 }
