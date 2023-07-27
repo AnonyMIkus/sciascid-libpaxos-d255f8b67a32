@@ -88,17 +88,21 @@ void* evpaxos_replica_init_thread_start(void* inp)
 
 int evpaxos_replica_init_thread(void* inref,void* insyncs, struct evpaxos_parms* p)
 {
+	printf("Start threading process ...");
 	pthread_t* ref = (pthread_t*)inref;
 	pthread_mutex_t* syncs = (pthread_mutex_t*)insyncs;
 	p->thread = ref;
 	p->tsync = syncs;
+	printf("Set up mutex.");
 	pthread_mutexattr_t attr;
 	pthread_mutexattr_init(&attr);
 	pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE);
 	pthread_mutex_init(p->tsync, &attr);
 	pthread_mutexattr_destroy(&attr);
 	pthread_mutex_lock(p->tsync);
+	printf("Create Thread.");
 	int rc = pthread_create(ref, NULL, evpaxos_replica_init_thread_start, (void*) p);
+	fflush(stdout);
 	return rc;
 }
 
