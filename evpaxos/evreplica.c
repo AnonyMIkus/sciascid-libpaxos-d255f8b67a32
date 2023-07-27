@@ -65,6 +65,19 @@ struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config,
 	p->tsync = isync;
 	return p;
 }
+struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config,
+	deliver_function cb, void* arg, struct event_base* base, pthread_mutex_t* isync)
+{
+	struct evpaxos_parms* p = malloc(sizeof(struct evpaxos_parms));
+	if (!p) return p;
+	p->id = id;
+	p->config = config;
+	p->f = cb;
+	p->arg = arg;
+	p->base = base;
+	p->tsync = isync;
+	return p;
+}
 
 static void evpaxos_replica_deliver(unsigned iid, char* value, size_t size, void* arg)
 {
@@ -78,8 +91,15 @@ void* evpaxos_replica_init_thread_start(void* inp)
 {
 	struct evpaxos_parms* p = (struct evpaxos_parms*)inp;
 	struct evpaxos_replica* r = evpaxos_replica_init(p->id, p->config, p->f, p->arg, p->base);
-	pthread_mutex_lock(p->tsync);
-	pthread_mutex_destroy(p->tsync);
+	if (r == NULL)
+		return NULL;
+
+	int ret_mutex = pthread_mutex_init(p->tsync, NULL);
+	if (ret_mutex == 0){
+		pthread_mutex_lock(p->tsync);
+		pthread_mutex_destroy(p->tsync);
+	}
+	
 	evpaxos_replica_free(r);
 	return NULL;
 }
