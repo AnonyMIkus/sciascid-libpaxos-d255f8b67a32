@@ -62,42 +62,48 @@ deliver(unsigned iid, char* value, size_t size, void* arg)
 }
 
 static void
-start_replica(int id, const char* config, pthread_t* ref, pthread_mutex_t* syncs)
+start_replica(int id, const char* config, pthread_t* ref, pthread_mutex_t* syncs, void** cs)
 {
 	struct event* sig;
 	struct event_base* base;
 	struct evpaxos_config* cfg;
-
 	deliver_function cb = NULL;
-
 	if (verbose)
 		cb = deliver;
-
 	base = event_base_new();
-
 	cfg = evpaxos_config_read(config);
-//	replica = evpaxos_replica_init(id, config, cb, NULL, base);
-
+	int max_run = evpaxos_replica_counted();
 	int i = 0;
-	
-	struct evpaxos_parms* p = evpaxos_alloc_parms(id, cfg, cb, NULL, base, &(syncs[i]));
-	evpaxos_replica_init_thread(&(ref[i]), &(syncs[i]),p);
-	free(p);
+	while (i < max_run)
+	{
+		// struct evpaxos_parms* p = evpaxos_alloc_parms(id, cfg, cb, NULL, base, &(syncs[i]));
+		struct evpaxos_parms* p = evpaxos_alloc_parms(i, cfg, cb, NULL, base, &(syncs[i]));
+
+		cs[i] = (void*)p;
+
+		evpaxos_replica_init_thread(&(ref[i]), &(syncs[i]), p);
+		i++;
+	}
 
 	sig = evsignal_new(base, SIGINT, handle_sigint, base);
 	evsignal_add(sig, NULL);
-
 	signal(SIGPIPE, SIG_IGN);
 	event_base_dispatch(base);
 	event_free(sig);
 	event_base_free(base);
 
 	i = 0;
-	pthread_mutex_unlock(&(syncs[i]));
-	pthread_join(ref[i],NULL);
-	pthread_detach(ref[i]);
+	while (i < max_run) 
+	{
+		pthread_mutex_unlock(&(syncs[i]));
+		pthread_join(ref[i], NULL);
+		pthread_detach(ref[i]);
 
-	evpaxos_config_free(cfg);
+		free(cs[i]);
+		evpaxos_config_free(cfg);
+		i++;
+	}
+
 }
 
 static void
@@ -137,8 +143,9 @@ main(int argc, char const* argv[])
 
 	pthread_t* threads = calloc(MAX_N_OF_THREADS, sizeof(pthread_t));
 	pthread_mutex_t* syncs = calloc(MAX_N_OF_THREADS, sizeof(pthread_mutex_t));
+	void** cs = calloc(MAX_N_OF_THREADS, sizeof(void*));
 
-	start_replica(id, config, threads, syncs);
+	start_replica(id, config, threads, syncs, cs);
 
 	free(threads);
 	free(syncs);

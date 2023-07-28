@@ -88,19 +88,19 @@ void* evpaxos_replica_init_thread_start(void* inp)
 
 int evpaxos_replica_init_thread(void* inref,void* insyncs, struct evpaxos_parms* p)
 {
-	printf("Start threading process ...");
+	printf("\nStart threading process ...");
 	pthread_t* ref = (pthread_t*)inref;
 	pthread_mutex_t* syncs = (pthread_mutex_t*)insyncs;
 	p->thread = ref;
 	p->tsync = syncs;
-	printf("Set up mutex.");
+	printf("\nSet up mutex.");
 	pthread_mutexattr_t attr;
 	pthread_mutexattr_init(&attr);
 	pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE);
 	pthread_mutex_init(p->tsync, &attr);
 	pthread_mutexattr_destroy(&attr);
 	pthread_mutex_lock(p->tsync);
-	printf("Create Thread.");
+	printf("\nCreate Thread\n");
 	int rc = pthread_create(ref, NULL, evpaxos_replica_init_thread_start, (void*) p);
 	fflush(stdout);
 	return rc;
@@ -122,7 +122,7 @@ struct evpaxos_replica* evpaxos_replica_init(int id, struct evpaxos_config* c, d
 	r->deliver = f;
 	r->arg = arg;
 
-	printf("\nGot id %d", id);
+	printf("\nGot id %d\n", id);
 
 	int port = evpaxos_acceptor_listen_port(config, id);
 	printf("\nGot port%d", port);

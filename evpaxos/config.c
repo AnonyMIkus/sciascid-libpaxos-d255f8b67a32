@@ -67,6 +67,17 @@ struct option
 	enum option_type type;
 };
 
+struct virt_address
+{
+	char* virt_addr;
+	char* virt_port;
+};
+
+struct network_sim
+{
+	struct virt_address virtual_addresses[MAX_N_OF_PROPOSERS];
+};
+
 struct option options[] =
 {
 	{ "verbosity", &paxos_config.verbosity, option_verbosity },
@@ -88,9 +99,7 @@ static void address_free(struct address* a);
 static void address_copy(struct address* src, struct address* dst);
 static struct sockaddr_in address_to_sockaddr(struct address* a);
 
-
-struct evpaxos_config*
-evpaxos_config_read(const char* path)
+struct evpaxos_config* evpaxos_config_read(const char* path)
 {
 	struct stat sb;
 	FILE* f = NULL;
@@ -128,7 +137,7 @@ evpaxos_config_read(const char* path)
 		};
 		linenumber++;
 	}
-	printf("Finish readig conf.");
+	printf("\nFinish readig conf.\n");
 	fclose(f);
 	return c;
 
@@ -136,6 +145,75 @@ failure:
 	free(c);
 	if (f != NULL) fclose(f);
 	return NULL;
+}
+
+int evpaxos_replica_counted() {
+	int counter = 0;
+	const char* path = "../paxos.conf";
+	FILE* f = NULL;
+	char line[512];
+	int linenumber = 1;
+	if ((f = fopen(path, "r")) == NULL) {
+		perror("fopen");
+		goto failure;
+	}
+	while (fgets(line, sizeof(line), f) != NULL) {
+		if (line[0] != '#' && line[0] != '\n' && line[0] != '\r') {
+			if (parse_replica_line(line) == 0) {
+				paxos_log_error("Please, check line %d\n", linenumber);
+				paxos_log_error("Error parsing config file %s\n", path);
+				goto failure;
+			}
+			else
+			{
+				counter++;
+			}
+		};
+		linenumber++;
+	}
+	fclose(f);
+	return counter;
+
+failure:
+	if (f != NULL) fclose(f);
+	return -1;
+}
+
+int parse_replica_line(char* line)
+{	
+	char* sep = " ";
+	line = strtrim2(line);
+	char* tok = strsep(&line, sep);
+	if (strcasecmp(tok, "r") == 0 || strcasecmp(tok, "replica") == 0) {
+		return parse_replica(line);
+	}
+	return 0;
+}
+
+int parse_replica(char* str)
+{
+	int id;
+	int port;
+	char address[128];
+	int rv = sscanf(str, "%d %s %d", &id, address, &port);
+	if (rv == 3) {
+		return 1;
+	}
+	return 0;
+}
+
+char* strtrim2(char* string)
+{
+	char* s, * t;
+	for (s = string; isspace(*s); s++)
+		;
+	if (*s == 0)
+		return s;
+	t = s + strlen(s) - 1;
+	while (t > s && isspace(*t))
+		t--;
+	*++t = '\0';
+	return s;
 }
 
 void
@@ -155,8 +233,7 @@ evpaxos_proposer_address(struct evpaxos_config* config, int i)
 	return address_to_sockaddr(&config->proposers[i]);
 }
 	
-int
-evpaxos_proposer_listen_port(struct evpaxos_config* config, int i)
+int evpaxos_proposer_listen_port(struct evpaxos_config* config, int i)
 {
 	return config->proposers[i].port;
 }
