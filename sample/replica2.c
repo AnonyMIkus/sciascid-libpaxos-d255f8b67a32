@@ -62,27 +62,23 @@ deliver(unsigned iid, char* value, size_t size, void* arg)
 }
 
 static void
-start_replica(int id, const char* config, pthread_t* ref, pthread_mutex_t* syncs, void** cs)
+start_replica(int nnodes, struct evpaxos_config* cfg, pthread_t* ref, pthread_mutex_t* syncs, void** cs)
 {
 	struct event* sig;
 	struct event_base* base;
-	struct evpaxos_config* cfg;
 	deliver_function cb = NULL;
+	struct evpaxos_parms* p;
 	if (verbose)
 		cb = deliver;
 	base = event_base_new();
-	cfg = evpaxos_config_read(config);
-	int max_run = evpaxos_replica_counted();
 	int i = 0;
-	while (i < max_run)
+	while (i < nnodes)
 	{
-		// struct evpaxos_parms* p = evpaxos_alloc_parms(id, cfg, cb, NULL, base, &(syncs[i]));
-		struct evpaxos_parms* p = evpaxos_alloc_parms(i, cfg, cb, NULL, base, &(syncs[i]));
-
+		p = evpaxos_alloc_parms(i, cfg, cb, NULL, base, &(syncs[i]));
 		cs[i] = (void*)p;
 
 		evpaxos_replica_init_thread(&(ref[i]), &(syncs[i]), p);
-		i++;
+		++i;
 	}
 
 	sig = evsignal_new(base, SIGINT, handle_sigint, base);
@@ -92,8 +88,9 @@ start_replica(int id, const char* config, pthread_t* ref, pthread_mutex_t* syncs
 	event_free(sig);
 	event_base_free(base);
 
+
 	i = 0;
-	while (i < max_run) 
+	while (i < nnodes) 
 	{
 		pthread_mutex_unlock(&(syncs[i]));
 		pthread_join(ref[i], NULL);
@@ -101,7 +98,7 @@ start_replica(int id, const char* config, pthread_t* ref, pthread_mutex_t* syncs
 
 		free(cs[i]);
 		evpaxos_config_free(cfg);
-		i++;
+		++i;
 	}
 
 }
@@ -109,7 +106,7 @@ start_replica(int id, const char* config, pthread_t* ref, pthread_mutex_t* syncs
 static void
 usage(const char* prog)
 {
-	printf("Usage: %s id [path/to/paxos.conf] [-h] [-s]\n", prog);
+	printf("Usage: %s [path/to/paxos.conf] [-h] [-s]\n", prog);
 	printf("  %-30s%s\n", "-h, --help", "Output this message and exit");
 	printf("  %-30s%s\n", "-v, --verbose", "Print delivered messages");
 	exit(1);
@@ -118,16 +115,14 @@ usage(const char* prog)
 int
 main(int argc, char const* argv[])
 {
-	int id;
-	int i = 2;
+	int i = 1;
 	const char* config = "../paxos.conf";
 
-	if (argc < 2)
+	if (argc < 1)
 		usage(argv[0]);
 
-	id = atoi(argv[1]);
-	if (argc >= 3 && argv[2][0] != '-') {
-		config = argv[2];
+	if (argc >= 2 && argv[1][0] != '-') {
+		config = argv[1];
 		i++;
 	}
 
@@ -141,11 +136,22 @@ main(int argc, char const* argv[])
 		i++;
 	}
 
-	pthread_t* threads = calloc(MAX_N_OF_THREADS, sizeof(pthread_t));
-	pthread_mutex_t* syncs = calloc(MAX_N_OF_THREADS, sizeof(pthread_mutex_t));
-	void** cs = calloc(MAX_N_OF_THREADS, sizeof(void*));
 
-	start_replica(id, config, threads, syncs, cs);
+
+	struct evpaxos_config* cfg;
+	cfg = evpaxos_config_read(config);
+	if (cfg < 0) return 0;
+
+	int nnodes = evpaxos_replica_counted();
+	printf("path %s nodes %d", config, nnodes);
+	fflush(stdout);
+
+
+	pthread_t* threads = calloc(nnodes,sizeof(pthread_t));
+	pthread_mutex_t* syncs = calloc(nnodes, sizeof(pthread_mutex_t));
+	void** cs = calloc(nnodes, sizeof(void*));
+
+	start_replica(nnodes, cfg, threads, syncs, cs);
 
 	free(threads);
 	free(syncs);

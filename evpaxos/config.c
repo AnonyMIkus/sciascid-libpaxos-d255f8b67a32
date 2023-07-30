@@ -181,13 +181,64 @@ failure:
 
 int parse_replica_line(char* line)
 {	
+	int rv;
 	char* sep = " ";
 	line = strtrim2(line);
 	char* tok = strsep(&line, sep);
+	struct option* opt;
 	if (strcasecmp(tok, "r") == 0 || strcasecmp(tok, "replica") == 0) {
-		return parse_replica(line);
+		rv = parse_replica(line);
 	}
-	return 0;
+	opt = lookup_option2(line);
+	if (opt == NULL)
+		return 0;
+
+	if (opt->type == option_verbosity)
+	{
+		if (strcasecmp(line, "quiet") == 0) opt->value = PAXOS_LOG_QUIET;
+		else if (strcasecmp(line, "error") == 0) opt->value = PAXOS_LOG_ERROR;
+		else if (strcasecmp(line, "info") == 0) opt->value = PAXOS_LOG_INFO;
+		else if (strcasecmp(line, "debug") == 0) opt->value = PAXOS_LOG_DEBUG;
+		else return 0;
+		rv = 1;
+	}
+	/*switch (opt->type) {
+	case option_boolean:
+		rv = parse_boolean(line, opt->value);
+		if (rv == 0) paxos_log_error("Expected 'yes' or 'no'\n");
+		break;
+	case option_integer:
+		rv = parse_integer(line, opt->value);
+		if (rv == 0) paxos_log_error("Expected number\n");
+		break;
+	case option_string:
+		rv = parse_string(line, opt->value);
+		if (rv == 0) paxos_log_error("Expected string\n");
+		break;
+	case option_verbosity:
+		rv = parse_verbosity(line, opt->value);
+		if (rv == 0) paxos_log_error("Expected quiet, error, info, or debug\n");
+		break;
+	case option_backend:
+		rv = parse_backend(line, opt->value);
+		if (rv == 0) paxos_log_error("Expected memory or lmdb\n");
+		break;
+	case option_bytes:
+		rv = parse_bytes(line, opt->value);
+		if (rv == 0) paxos_log_error("Expected number of bytes.\n");
+	}*/
+	return rv;
+}
+
+struct option* lookup_option2(char* opt)
+{
+	int i = 0;
+	while (options[i].name != NULL) {
+		if (strcasecmp(options[i].name, opt) == 0)
+			return &options[i];
+		i++;
+	}
+	return NULL;
 }
 
 int parse_replica(char* str)
