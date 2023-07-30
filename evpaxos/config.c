@@ -131,6 +131,7 @@ struct evpaxos_config* evpaxos_config_read(const char* path)
 		if (line[0] != '#' && line[0] != '\n' && line[0] != '\r') {
 			if (parse_line(c, line) == 0) {
 				paxos_log_error("Please, check line %d\n", linenumber);
+				paxos_log_error("Please, check line %s\n", line);
 				paxos_log_error("Error parsing config file %s\n", path);
 				goto failure;
 			}
@@ -147,124 +148,8 @@ failure:
 	return NULL;
 }
 
-int evpaxos_replica_counted() {
-	int counter = 0;
-	const char* path = "../paxos.conf";
-	FILE* f = NULL;
-	char line[512];
-	int linenumber = 1;
-	if ((f = fopen(path, "r")) == NULL) {
-		perror("fopen");
-		goto failure;
-	}
-	while (fgets(line, sizeof(line), f) != NULL) {
-		if (line[0] != '#' && line[0] != '\n' && line[0] != '\r') {
-			if (parse_replica_line(line) == 0) {
-				paxos_log_error("Please, check line %d\n", linenumber);
-				paxos_log_error("Error parsing config file %s\n", path);
-				goto failure;
-			}
-			else
-			{
-				counter++;
-			}
-		};
-		linenumber++;
-	}
-	fclose(f);
-	return counter;
-
-failure:
-	if (f != NULL) fclose(f);
-	return -1;
-}
-
-int parse_replica_line(char* line)
-{	
-	int rv;
-	char* sep = " ";
-	line = strtrim2(line);
-	char* tok = strsep(&line, sep);
-	struct option* opt;
-	if (strcasecmp(tok, "r") == 0 || strcasecmp(tok, "replica") == 0) {
-		rv = parse_replica(line);
-	}
-	opt = lookup_option2(line);
-	if (opt == NULL)
-		return 0;
-
-	if (opt->type == option_verbosity)
-	{
-		if (strcasecmp(line, "quiet") == 0) opt->value = PAXOS_LOG_QUIET;
-		else if (strcasecmp(line, "error") == 0) opt->value = PAXOS_LOG_ERROR;
-		else if (strcasecmp(line, "info") == 0) opt->value = PAXOS_LOG_INFO;
-		else if (strcasecmp(line, "debug") == 0) opt->value = PAXOS_LOG_DEBUG;
-		else return 0;
-		rv = 1;
-	}
-	/*switch (opt->type) {
-	case option_boolean:
-		rv = parse_boolean(line, opt->value);
-		if (rv == 0) paxos_log_error("Expected 'yes' or 'no'\n");
-		break;
-	case option_integer:
-		rv = parse_integer(line, opt->value);
-		if (rv == 0) paxos_log_error("Expected number\n");
-		break;
-	case option_string:
-		rv = parse_string(line, opt->value);
-		if (rv == 0) paxos_log_error("Expected string\n");
-		break;
-	case option_verbosity:
-		rv = parse_verbosity(line, opt->value);
-		if (rv == 0) paxos_log_error("Expected quiet, error, info, or debug\n");
-		break;
-	case option_backend:
-		rv = parse_backend(line, opt->value);
-		if (rv == 0) paxos_log_error("Expected memory or lmdb\n");
-		break;
-	case option_bytes:
-		rv = parse_bytes(line, opt->value);
-		if (rv == 0) paxos_log_error("Expected number of bytes.\n");
-	}*/
-	return rv;
-}
-
-struct option* lookup_option2(char* opt)
-{
-	int i = 0;
-	while (options[i].name != NULL) {
-		if (strcasecmp(options[i].name, opt) == 0)
-			return &options[i];
-		i++;
-	}
-	return NULL;
-}
-
-int parse_replica(char* str)
-{
-	int id;
-	int port;
-	char address[128];
-	int rv = sscanf(str, "%d %s %d", &id, address, &port);
-	if (rv == 3) {
-		return 1;
-	}
-	return 0;
-}
-
-char* strtrim2(char* string)
-{
-	char* s, * t;
-	for (s = string; isspace(*s); s++)
-		;
-	if (*s == 0)
-		return s;
-	t = s + strlen(s) - 1;
-	while (t > s && isspace(*t))
-		t--;
-	*++t = '\0';
-	return s;
+int evpaxos_replica_nodes(struct evpaxos_config* ref) {
+	return ref->acceptors_count;
 }
 
 void

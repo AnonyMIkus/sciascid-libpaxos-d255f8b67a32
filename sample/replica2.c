@@ -142,7 +142,7 @@ main(int argc, char const* argv[])
 	cfg = evpaxos_config_read(config);
 	if (cfg < 0) return 0;
 
-	int nnodes = evpaxos_replica_counted();
+	int nnodes = evpaxos_replica_nodes(cfg);
 	printf("path %s nodes %d", config, nnodes);
 	fflush(stdout);
 
