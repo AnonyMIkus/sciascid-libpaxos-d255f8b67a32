@@ -110,6 +110,7 @@ void msgpack_unpack_paxos_promise(msgpack_object* o, paxos_promise* v)
 	msgpack_unpack_uint32_at(o, &v->ballot, &i);
 	msgpack_unpack_uint32_at(o, &v->value_ballot, &i);
 	msgpack_unpack_uint32_at(o, &v->n_aids, &i);
+	v->aids = NULL;
 	msgpack_unpack_paxos_value_at(o, &v->value, &i);
 }
 

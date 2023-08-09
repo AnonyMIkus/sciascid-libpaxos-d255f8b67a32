@@ -181,8 +181,11 @@ paxos_accepted_to_promise(paxos_accepted* acc, paxos_message* out)
 		acc->iid,
 		acc->ballot,
 		acc->value_ballot,
+		1,
+		calloc(1,sizeof(uint32_t)),
 		{acc->value.paxos_value_len, acc->value.paxos_value_val}
 	};
+	out->u.promise.aids[0] = acc->aid;
 }
 
 static void

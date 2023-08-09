@@ -89,6 +89,9 @@ paxos_accepted_free(paxos_accepted* a)
 void
 paxos_promise_destroy(paxos_promise* p)
 {
+	paxos_log_debug("destroying %lx in promise %lx",p->aids,p);
+	if (p->aids != NULL) free(p -> aids); 
+	p->aids = NULL;
 	paxos_value_destroy(&p->value);
 }
 
