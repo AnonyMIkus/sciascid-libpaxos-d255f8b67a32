@@ -51,6 +51,8 @@ struct paxos_promise
 	uint32_t iid;
 	uint32_t ballot;
 	uint32_t value_ballot;
+	uint32_t n_aids;
+	uint32_t* aids;
 	paxos_value value;
 };
 typedef struct paxos_promise paxos_promise;
