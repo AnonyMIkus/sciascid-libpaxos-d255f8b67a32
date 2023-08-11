@@ -47,7 +47,7 @@ typedef struct paxos_prepare paxos_prepare;
 
 struct paxos_promise
 {
-	uint32_t aid;
+	uint32_t aid_0;
 	uint32_t iid;
 	uint32_t ballot;
 	uint32_t value_ballot;

@@ -99,6 +99,13 @@ static void address_free(struct address* a);
 static void address_copy(struct address* src, struct address* dst);
 static struct sockaddr_in address_to_sockaddr(struct address* a);
 
+
+/**
+ * Reads and parses an evpaxos configuration file, populating an evpaxos_config structure.
+ *
+ * @param path The path to the configuration file.
+ * @return A pointer to the populated evpaxos_config structure, or NULL on failure.
+ */
 struct evpaxos_config* evpaxos_config_read(const char* path)
 {
 	struct stat sb;
@@ -148,12 +155,23 @@ failure:
 	return NULL;
 }
 
+/**
+ * Returns the number of acceptors (replica nodes) configured in the evpaxos_config structure.
+ *
+ * @param ref A pointer to the evpaxos_config structure.
+ * @return The number of acceptors (replica nodes).
+ */
 int evpaxos_replica_nodes(struct evpaxos_config* ref) {
 	return ref->acceptors_count;
 }
 
-void
-evpaxos_config_free(struct evpaxos_config* config)
+
+/**
+ * Frees memory and resources associated with an evpaxos_config structure.
+ *
+ * @param config A pointer to the evpaxos_config structure to free.
+ */
+void evpaxos_config_free(struct evpaxos_config* config)
 {
 	int i;
 	for (i = 0; i < config->proposers_count; ++i)
@@ -163,37 +181,74 @@ evpaxos_config_free(struct evpaxos_config* config)
 	free(config);
 }
 
-struct sockaddr_in
-evpaxos_proposer_address(struct evpaxos_config* config, int i)
+/**
+ * Retrieves the sockaddr_in representation of a proposer's address from the evpaxos_config structure.
+ *
+ * @param config A pointer to the evpaxos_config structure.
+ * @param i The index of the proposer.
+ * @return The sockaddr_in representation of the proposer's address.
+ */
+struct sockaddr_in evpaxos_proposer_address(struct evpaxos_config* config, int i)
 {
 	return address_to_sockaddr(&config->proposers[i]);
 }
-	
+
+/**
+ * Retrieves the listen port of a proposer from the evpaxos_config structure.
+ *
+ * @param config A pointer to the evpaxos_config structure.
+ * @param i The index of the proposer.
+ * @return The listen port of the proposer.
+ */
 int evpaxos_proposer_listen_port(struct evpaxos_config* config, int i)
 {
 	return config->proposers[i].port;
 }
 
-int 
-evpaxos_acceptor_count(struct evpaxos_config* config)
+/**
+ * Retrieves the number of acceptors (replica nodes) configured in the evpaxos_config structure.
+ *
+ * @param config A pointer to the evpaxos_config structure.
+ * @return The number of acceptors (replica nodes).
+ */
+int evpaxos_acceptor_count(struct evpaxos_config* config)
 {
 	return config->acceptors_count;
 }
 
-struct sockaddr_in
-evpaxos_acceptor_address(struct evpaxos_config* config, int i)
+
+/**
+ * Retrieves the sockaddr_in representation of an acceptor's address from the evpaxos_config structure.
+ *
+ * @param config A pointer to the evpaxos_config structure.
+ * @param i The index of the acceptor.
+ * @return The sockaddr_in representation of the acceptor's address.
+ */
+struct sockaddr_in evpaxos_acceptor_address(struct evpaxos_config* config, int i)
 {
 	return address_to_sockaddr(&config->acceptors[i]);
 }
 
-int
-evpaxos_acceptor_listen_port(struct evpaxos_config* config, int i)
+/**
+ * Retrieves the listen port of an acceptor from the evpaxos_config structure.
+ *
+ * @param config A pointer to the evpaxos_config structure.
+ * @param i The index of the acceptor.
+ * @return The listen port of the acceptor.
+ */
+int evpaxos_acceptor_listen_port(struct evpaxos_config* config, int i)
 {
 	return config->acceptors[i].port;
 }
 
-static char*
-strtrim(char* string)
+
+/**
+ * Trims leading and trailing whitespace characters from a string.
+ *
+ * @param string The string to trim.
+ * @return A pointer to the trimmed portion of the string.
+ */
+static char* strtrim(char* string)
 {
 	char *s, *t;
 	for (s = string; isspace(*s); s++)
@@ -207,8 +262,15 @@ strtrim(char* string)
 	return s;
 }
 
-static int
-parse_bytes(char* str, size_t* bytes)
+/**
+ * Parses a string representation of bytes (e.g., "1024", "1kb") and converts it to the corresponding size in bytes.
+ * Supports size modifiers "kb", "mb", and "gb".
+ *
+ * @param str The string representation of bytes.
+ * @param bytes A pointer to store the converted size in bytes.
+ * @return 1 on successful parsing, 0 on failure.
+ */
+static int parse_bytes(char* str, size_t* bytes)
 {
 	char* end;
 	errno = 0; /* To distinguish strtoll's return value 0 */
@@ -224,8 +286,14 @@ parse_bytes(char* str, size_t* bytes)
 	return 1;
 }
 
-static int
-parse_boolean(char* str, int* boolean)
+/**
+ * Parses a string representation of a boolean value ("yes" or "no") and converts it to an integer (1 or 0).
+ *
+ * @param str The string representation of a boolean.
+ * @param boolean A pointer to store the converted boolean value (1 or 0).
+ * @return 1 on successful parsing, 0 on failure.
+ */
+static int parse_boolean(char* str, int* boolean)
 {
 	if (str == NULL) return 0;
 	if (strcasecmp(str, "yes") == 0) {
@@ -239,8 +307,15 @@ parse_boolean(char* str, int* boolean)
 	return 0;
 }
 
-static int
-parse_integer(char* str, int* integer)
+
+/**
+ * Parses a string representation of an integer and converts it to an integer value.
+ *
+ * @param str The string representation of an integer.
+ * @param integer A pointer to store the converted integer value.
+ * @return 1 on successful parsing, 0 on failure.
+ */
+static int parse_integer(char* str, int* integer)
 {
 	int n;
 	char* end;
@@ -251,8 +326,16 @@ parse_integer(char* str, int* integer)
 	return 1;
 }
 
-static int
-parse_string(char* str, char** string)
+/**
+ * parse_string
+ *
+ * Parses a string and allocates memory for a copy of the string.
+ *
+ * @param str The input string to parse.
+ * @param string A pointer to store the allocated copy of the string.
+ * @return 1 on successful parsing, 0 on failure.
+ */
+static int parse_string(char* str, char** string)
 {
 	if (str == NULL || str[0] == '\0' || str[0] == '\n')
 		return 0;
@@ -260,8 +343,17 @@ parse_string(char* str, char** string)
 	return 1;
 }
 
-static int
-parse_address(char* str, struct address* addr)
+/**
+ * parse_address
+ *
+ * Parses a string representing an address in the format "id address port".
+ * Initializes an address structure with the parsed information.
+ *
+ * @param str The input string to parse.
+ * @param addr A pointer to the address structure to initialize.
+ * @return 1 on successful parsing, 0 on failure.
+ */
+static int parse_address(char* str, struct address* addr)
 {
 	int id;
 	int port;
@@ -277,8 +369,16 @@ parse_address(char* str, struct address* addr)
 	return 0;
 }
 
-static int
-parse_verbosity(char* str, paxos_log_level* verbosity)
+/**
+ * parse_verbosity
+ *
+ * Parses a string representation of verbosity level ("quiet", "error", "info", "debug") and converts it to the corresponding enum value.
+ *
+ * @param str The string representation of verbosity level.
+ * @param verbosity A pointer to store the converted verbosity level.
+ * @return 1 on successful parsing, 0 on failure.
+ */
+static int parse_verbosity(char* str, paxos_log_level* verbosity)
 {
 	if (strcasecmp(str, "quiet") == 0) *verbosity = PAXOS_LOG_QUIET;
 	else if (strcasecmp(str, "error") == 0) *verbosity = PAXOS_LOG_ERROR;
@@ -288,8 +388,14 @@ parse_verbosity(char* str, paxos_log_level* verbosity)
 	return 1;
 }
 
-static int
-parse_backend(char* str, paxos_storage_backend* backend)
+/**
+ * Parses a string representation of a storage backend ("memory" or "lmdb") and converts it to the corresponding enum value.
+ *
+ * @param str The string representation of storage backend.
+ * @param backend A pointer to store the converted storage backend.
+ * @return 1 on successful parsing, 0 on failure.
+ */
+static int parse_backend(char* str, paxos_storage_backend* backend)
 {
 	if (strcasecmp(str, "memory") == 0) *backend = PAXOS_MEM_STORAGE;
 	else if (strcasecmp(str, "lmdb") == 0) *backend = PAXOS_LMDB_STORAGE;
@@ -297,8 +403,13 @@ parse_backend(char* str, paxos_storage_backend* backend)
 	return 1;
 }
 
-static struct option*
-lookup_option(char* opt)
+/**
+ * Looks up an option by its name in the options array.
+ *
+ * @param opt The name of the option to look up.
+ * @return A pointer to the option structure if found, or NULL if not found.
+ */
+static struct option* lookup_option(char* opt)
 {
 	int i = 0;
 	while (options[i].name != NULL) {
@@ -309,6 +420,14 @@ lookup_option(char* opt)
 	return NULL;
 }
 
+
+/**
+ * Parses a configuration line and populates the given evpaxos_config structure based on the content of the line.
+ *
+ * @param c A pointer to the evpaxos_config structure to populate.
+ * @param line The configuration line to parse.
+ * @return 1 on successful parsing, 0 on failure.
+ */
 static int 
 parse_line(struct evpaxos_config* c, char* line)
 {
@@ -388,27 +507,47 @@ parse_line(struct evpaxos_config* c, char* line)
 	return rv;
 }
 
-static void
-address_init(struct address* a, char* addr, int port)
+/**
+ * Initializes an address structure with the given address and port.
+ *
+ * @param a A pointer to the address structure to initialize.
+ * @param addr The string representation of the address.
+ * @param port The port number.
+ */
+static void address_init(struct address* a, char* addr, int port)
 {
 	a->addr = strdup(addr);
 	a->port = port;
 }
 
-static void
-address_free(struct address* a)
+/**
+ * Frees the memory associated with the address string in the address structure.
+ *
+ * @param a A pointer to the address structure to free.
+ */
+static void address_free(struct address* a)
 {
 	free(a->addr);
 }
 
-static void
-address_copy(struct address* src, struct address* dst)
+/**
+ * Copies the content of the source address structure to the destination address structure.
+ *
+ * @param src A pointer to the source address structure.
+ * @param dst A pointer to the destination address structure.
+ */
+static void address_copy(struct address* src, struct address* dst)
 {
 	address_init(dst, src->addr, src->port);
 }
 
-static struct sockaddr_in
-address_to_sockaddr(struct address* a)
+/**
+ * Converts an address structure to a sockaddr_in structure.
+ *
+ * @param a A pointer to the address structure to convert.
+ * @return A sockaddr_in structure containing the converted address information.
+ */
+static struct sockaddr_in address_to_sockaddr(struct address* a)
 {
 	struct sockaddr_in addr;
 	memset(&addr, 0, sizeof(struct sockaddr_in));

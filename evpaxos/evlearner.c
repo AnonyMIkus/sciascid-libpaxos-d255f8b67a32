@@ -44,15 +44,19 @@ struct evlearner
 	struct peers* acceptors;    /* Connections to acceptors */
 };
 
-
-static void
-peer_send_repeat(struct peer* p, void* arg)
+/**
+ * Callback function to send a paxos_repeat message to a peer.
+ */
+static void peer_send_repeat(struct peer* p, void* arg)
 {
 	send_paxos_repeat(peer_get_buffer(p), arg);
 }
 
-static void
-evlearner_check_holes(evutil_socket_t fd, short event, void *arg)
+/**
+ * Callback function to periodically check for holes in the learned sequence
+ * and send paxos_repeat messages to fill the gaps.
+ */
+static void evlearner_check_holes(evutil_socket_t fd, short event, void *arg)
 {
 	paxos_repeat msg;
 	int chunks = 10;
@@ -65,8 +69,10 @@ evlearner_check_holes(evutil_socket_t fd, short event, void *arg)
 	event_add(l->hole_timer, &l->tv);
 }
 
-static void 
-evlearner_deliver_next_closed(struct evlearner* l)
+/**
+ * Delivers the next closed instance values to the specified callback function.
+ */
+static void evlearner_deliver_next_closed(struct evlearner* l)
 {
 	paxos_accepted deliver;
 	while (learner_deliver_next(l->state, &deliver)) {
@@ -83,16 +89,23 @@ evlearner_deliver_next_closed(struct evlearner* l)
 	Called when an accept_ack is received, the learner will update it's status
     for that instance and afterwards check if the instance is closed
 */
-static void
-evlearner_handle_accepted(struct peer* p, paxos_message* msg, void* arg)
+
+/**
+ * Callback function to handle received paxos_accepted messages.
+ * Updates the learner's status for the received instance and checks if the instance is closed.
+ */
+static void evlearner_handle_accepted(struct peer* p, paxos_message* msg, void* arg)
 {
 	struct evlearner* l = arg;
 	learner_receive_accepted(l->state, &msg->u.accepted);
 	evlearner_deliver_next_closed(l);
 }
 
-struct evlearner*
-evlearner_init_internal(struct evpaxos_config* config, struct peers* peers,
+/**
+ * Initializes an evlearner structure internally with the provided configuration,
+ * deliver function, and argument.
+ */
+struct evlearner* evlearner_init_internal(struct evpaxos_config* config, struct peers* peers,
 	deliver_function f, void* arg)
 {
 	int acceptor_count = evpaxos_acceptor_count(config);
@@ -115,8 +128,11 @@ evlearner_init_internal(struct evpaxos_config* config, struct peers* peers,
 	return learner;
 }
 
-struct evlearner*
-evlearner_init(const char* config_file, deliver_function f, void* arg, 
+/**
+ * Initializes an evlearner structure with the provided configuration,
+ * deliver function, argument, and event base.
+ */
+struct evlearner* evlearner_init(const char* config_file, deliver_function f, void* arg, 
 	struct event_base* b)
 {
 	struct evpaxos_config* c = evpaxos_config_read(config_file);
@@ -130,35 +146,46 @@ evlearner_init(const char* config_file, deliver_function f, void* arg,
 	return l;
 }
 
-void
-evlearner_free_internal(struct evlearner* l)
+/**
+ * Frees the resources associated with the evlearner structure.
+ */
+void evlearner_free_internal(struct evlearner* l)
 {
 	event_free(l->hole_timer);
 	learner_free(l->state);
 	free(l);
 }
 
-void
-evlearner_free(struct evlearner* l)
+/**
+ * Frees the resources associated with the evlearner structure, including peers.
+ */
+void evlearner_free(struct evlearner* l)
 {
 	peers_free(l->acceptors);
 	evlearner_free_internal(l);
 }
 
-void
-evlearner_set_instance_id(struct evlearner* l, unsigned iid)
+/**
+ * Sets the current instance ID for the evlearner.
+ */
+void evlearner_set_instance_id(struct evlearner* l, unsigned iid)
 {
 	learner_set_instance_id(l->state, iid);
 }
 
-static void
-peer_send_trim(struct peer* p, void* arg)
+/**
+ * Callback function to send a paxos_trim message to a peer.
+ */
+static void peer_send_trim(struct peer* p, void* arg)
 {
 	send_paxos_trim(peer_get_buffer(p), arg);
 }
 
-void
-evlearner_send_trim(struct evlearner* l, unsigned iid)
+
+/**
+ * Sends a paxos_trim message to all acceptors for the specified instance ID.
+ */
+void evlearner_send_trim(struct evlearner* l, unsigned iid)
 {
 	paxos_trim trim = {iid};
 	peers_foreach_acceptor(l->acceptors, peer_send_trim, &trim);

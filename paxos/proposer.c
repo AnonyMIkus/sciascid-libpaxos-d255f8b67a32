@@ -172,14 +172,14 @@ proposer_receive_promise(struct proposer* p, paxos_promise* ack,
 		return 1;
 	}
 	
-	if (quorum_add(&inst->quorum, ack->aid) == 0) {
+	if (quorum_add(&inst->quorum, ack->aids[0]) == 0) {
 		paxos_log_debug("Duplicate promise dropped from: %d, iid: %u",
-			ack->aid, inst->iid);
+			ack->aids[0], inst->iid);
 		return 0;
 	}
 		
 	paxos_log_debug("Received valid promise from: %d, iid: %u",
-		ack->aid, inst->iid);
+		ack->aids[0], inst->iid);
 		
 	if (ack->value.paxos_value_len > 0) {
 		paxos_log_debug("Promise has value");

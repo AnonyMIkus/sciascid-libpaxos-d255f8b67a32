@@ -45,20 +45,17 @@ struct evproposer
 };
 
 
-static void
-peer_send_prepare(struct peer* p, void* arg)
+static void peer_send_prepare(struct peer* p, void* arg)
 {
 	send_paxos_prepare(peer_get_buffer(p), arg);
 }
 
-static void
-peer_send_accept(struct peer* p, void* arg)
+static void peer_send_accept(struct peer* p, void* arg)
 {
 	send_paxos_accept(peer_get_buffer(p), arg);
 }
 
-static void
-proposer_preexecute(struct evproposer* p)
+static void proposer_preexecute(struct evproposer* p)
 {
 	int i;
 	paxos_prepare pr;
@@ -71,8 +68,7 @@ proposer_preexecute(struct evproposer* p)
 	paxos_log_debug("Opened %d new instances", count);
 }
 
-static void
-try_accept(struct evproposer* p)
+static void try_accept(struct evproposer* p)
 {
 	paxos_accept accept;
 	while (proposer_accept(p->state, &accept))
@@ -80,8 +76,7 @@ try_accept(struct evproposer* p)
 	proposer_preexecute(p);
 }
 
-static void
-evproposer_handle_promise(struct peer* p, paxos_message* msg, void* arg)
+static void evproposer_handle_promise(struct peer* p, paxos_message* msg, void* arg)
 {
 	struct evproposer* proposer = arg;
 	paxos_prepare prepare;
@@ -92,8 +87,7 @@ evproposer_handle_promise(struct peer* p, paxos_message* msg, void* arg)
 	try_accept(proposer);
 }
 
-static void
-evproposer_handle_accepted(struct peer* p, paxos_message* msg, void* arg)
+static void evproposer_handle_accepted(struct peer* p, paxos_message* msg, void* arg)
 {
 	struct evproposer* proposer = arg;
 	paxos_accepted* acc = &msg->u.accepted;
@@ -101,8 +95,7 @@ evproposer_handle_accepted(struct peer* p, paxos_message* msg, void* arg)
 		try_accept(proposer);
 }
 
-static void
-evproposer_handle_preempted(struct peer* p, paxos_message* msg, void* arg)
+static void evproposer_handle_preempted(struct peer* p, paxos_message* msg, void* arg)
 {
 	struct evproposer* proposer = arg;
 	paxos_prepare prepare;
@@ -114,8 +107,7 @@ evproposer_handle_preempted(struct peer* p, paxos_message* msg, void* arg)
 	}
 }
 
-static void
-evproposer_handle_client_value(struct peer* p, paxos_message* msg, void* arg)
+static void evproposer_handle_client_value(struct peer* p, paxos_message* msg, void* arg)
 {
 	struct evproposer* proposer = arg;
 	struct paxos_client_value* v = &msg->u.client_value;
@@ -125,16 +117,14 @@ evproposer_handle_client_value(struct peer* p, paxos_message* msg, void* arg)
 	try_accept(proposer);
 }
 
-static void
-evproposer_handle_acceptor_state(struct peer* p, paxos_message* msg, void* arg)
+static void evproposer_handle_acceptor_state(struct peer* p, paxos_message* msg, void* arg)
 {
 	struct evproposer* proposer = arg;
 	struct paxos_acceptor_state* acc_state = &msg->u.state;
 	proposer_receive_acceptor_state(proposer->state, acc_state);
 }
 
-static void
-evproposer_check_timeouts(evutil_socket_t fd, short event, void *arg)
+static void evproposer_check_timeouts(evutil_socket_t fd, short event, void *arg)
 {
 	struct evproposer* p = arg;
 	struct timeout_iterator* iter = proposer_timeout_iterator(p->state);
@@ -155,15 +145,13 @@ evproposer_check_timeouts(evutil_socket_t fd, short event, void *arg)
 	event_add(p->timeout_ev, &p->tv);
 }
 
-static void
-evproposer_preexec_once(evutil_socket_t fd, short event, void *arg)
+static void evproposer_preexec_once(evutil_socket_t fd, short event, void *arg)
 {
 	struct evproposer* p = arg;
 	proposer_preexecute(p);
 }
 
-struct evproposer*
-evproposer_init_internal(int id, struct evpaxos_config* c, struct peers* peers)
+struct evproposer* evproposer_init_internal(int id, struct evpaxos_config* c, struct peers* peers)
 {
 	struct evproposer* p;
 	int acceptor_count = evpaxos_acceptor_count(c);
@@ -194,8 +182,7 @@ evproposer_init_internal(int id, struct evpaxos_config* c, struct peers* peers)
 	return p;
 }
 
-struct evproposer*
-evproposer_init(int id, const char* config_file, struct event_base* base)
+struct evproposer* evproposer_init(int id, const char* config_file, struct event_base* base)
 {
 	struct evpaxos_config* config = evpaxos_config_read(config_file);
 
@@ -219,23 +206,20 @@ evproposer_init(int id, const char* config_file, struct event_base* base)
 	return p;
 }
 
-void
-evproposer_free_internal(struct evproposer* p)
+void evproposer_free_internal(struct evproposer* p)
 {
 	event_free(p->timeout_ev);
 	proposer_free(p->state);
 	free(p);
 }
 
-void
-evproposer_free(struct evproposer* p)
+void evproposer_free(struct evproposer* p)
 {
 	peers_free(p->peers);
 	evproposer_free_internal(p);
 }
 
-void
-evproposer_set_instance_id(struct evproposer* p, unsigned iid)
+void evproposer_set_instance_id(struct evproposer* p, unsigned iid)
 {
 	proposer_set_instance_id(p->state, iid);
 }

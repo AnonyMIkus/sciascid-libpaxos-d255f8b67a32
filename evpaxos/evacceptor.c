@@ -44,9 +44,13 @@ struct evacceptor
 	struct timeval timer_tv;
 };
 
-
-static void
-peer_send_paxos_message(struct peer* p, void* arg)
+/**
+ * Sends a Paxos message using the given peer's buffer.
+ *
+ * @param p A pointer to the peer structure representing the connection.
+ * @param arg A pointer to the Paxos message to send.
+ */
+static void peer_send_paxos_message(struct peer* p, void* arg)
 {
 	send_paxos_message(peer_get_buffer(p), arg);
 }
@@ -54,8 +58,15 @@ peer_send_paxos_message(struct peer* p, void* arg)
 /*
 	Received a prepare request (phase 1a).
 */
-static void 
-evacceptor_handle_prepare(struct peer* p, paxos_message* msg, void* arg)
+
+/**
+ * Handles a received prepare request (phase 1a) from a peer.
+ *
+ * @param p A pointer to the peer structure representing the connection.
+ * @param msg A pointer to the received Paxos message.
+ * @param arg A pointer to the evacceptor structure.
+ */
+static void evacceptor_handle_prepare(struct peer* p, paxos_message* msg, void* arg)
 {
 	paxos_message out;
 	paxos_prepare* prepare = &msg->u.prepare;
@@ -71,8 +82,15 @@ evacceptor_handle_prepare(struct peer* p, paxos_message* msg, void* arg)
 /*
 	Received a accept request (phase 2a).
 */
-static void 
-evacceptor_handle_accept(struct peer* p, paxos_message* msg, void* arg)
+
+/**
+ * Handles a received accept request (phase 2a) from a peer.
+ *
+ * @param p A pointer to the peer structure representing the connection.
+ * @param msg A pointer to the received Paxos message.
+ * @param arg A pointer to the evacceptor structure.
+ */
+static void evacceptor_handle_accept(struct peer* p, paxos_message* msg, void* arg)
 {	
 	paxos_message out;
 	paxos_accept* accept = &msg->u.accept;
@@ -89,8 +107,15 @@ evacceptor_handle_accept(struct peer* p, paxos_message* msg, void* arg)
 	}
 }
 
-static void
-evacceptor_handle_repeat(struct peer* p, paxos_message* msg, void* arg)
+/**
+ * Handles a received repeat request from a peer, resending accepted values
+ * for a range of instance IDs.
+ *
+ * @param p A pointer to the peer structure representing the connection.
+ * @param msg A pointer to the received Paxos message.
+ * @param arg A pointer to the evacceptor structure.
+ */
+static void evacceptor_handle_repeat(struct peer* p, paxos_message* msg, void* arg)
 {
 	iid_t iid;
 	paxos_accepted accepted;
@@ -105,16 +130,29 @@ evacceptor_handle_repeat(struct peer* p, paxos_message* msg, void* arg)
 	}
 }
 
-static void
-evacceptor_handle_trim(struct peer* p, paxos_message* msg, void* arg)
+/**
+ * Handles a received trim request from a peer, updating the acceptor's state
+ * to discard values below the specified instance ID.
+ *
+ * @param p A pointer to the peer structure representing the connection.
+ * @param msg A pointer to the received Paxos message.
+ * @param arg A pointer to the evacceptor structure.
+ */
+static void evacceptor_handle_trim(struct peer* p, paxos_message* msg, void* arg)
 {
 	paxos_trim* trim = &msg->u.trim;
 	struct evacceptor* a = (struct evacceptor*)arg;
 	acceptor_receive_trim(a->state, trim);
 }
 
-static void
-send_acceptor_state(int fd, short ev, void* arg)
+/**
+ * Sends the current state of the acceptor to all connected clients (peers).
+ *
+ * @param fd The file descriptor associated with the event.
+ * @param ev The event that occurred.
+ * @param arg A pointer to the evacceptor structure.
+ */
+static void send_acceptor_state(int fd, short ev, void* arg)
 {
 	struct evacceptor* a = (struct evacceptor*)arg;
 	paxos_message msg = {.type = PAXOS_ACCEPTOR_STATE};
@@ -123,36 +161,65 @@ send_acceptor_state(int fd, short ev, void* arg)
 	event_add(a->timer_ev, &a->timer_tv);
 }
 
-struct evacceptor*
-evacceptor_init_internal(int id, struct evpaxos_config* c, struct peers* p)
+/**
+ * Initializes an evacceptor structure with the specified acceptor ID, evpaxos
+ * configuration, and peers structure. Subscribes the evacceptor to receive
+ * messages from peers and sets up a timer to periodically send the acceptor's
+ * state to connected peers.
+ *
+ * @param id The ID of the acceptor.
+ * @param c A pointer to the evpaxos configuration.
+ * @param p A pointer to the peers structure representing connected peers.
+ * @return A pointer to the initialized evacceptor structure, or NULL on failure.
+ */
+struct evacceptor* evacceptor_init_internal(int id, struct evpaxos_config* c, struct peers* p)
 {
+	// Allocate memory for the evacceptor structure
 	struct evacceptor* acceptor;
-	
 	acceptor = calloc(1, sizeof(struct evacceptor));
+
+	// Create a new acceptor state associated with the specified ID
 	acceptor->state = acceptor_new(id);
 	acceptor->peers = p;
 	
+	// Subscribe the acceptor to handle various types of Paxos messages
 	peers_subscribe(p, PAXOS_PREPARE, evacceptor_handle_prepare, acceptor);
 	peers_subscribe(p, PAXOS_ACCEPT, evacceptor_handle_accept, acceptor);
 	peers_subscribe(p, PAXOS_REPEAT, evacceptor_handle_repeat, acceptor);
 	peers_subscribe(p, PAXOS_TRIM, evacceptor_handle_trim, acceptor);
 	
+	// Obtain the event base from the peers structure
 	struct event_base* base = peers_get_event_base(p);
+	// Create an event timer for sending the acceptor state periodically
 	acceptor->timer_ev = evtimer_new(base, send_acceptor_state, acceptor);
+	// Set the timer interval to 1 second
 	acceptor->timer_tv = (struct timeval){1, 0};
+	// Add the timer event to the event loop
 	event_add(acceptor->timer_ev, &acceptor->timer_tv);
 
 	return acceptor;
 }
 
-struct evacceptor*
-evacceptor_init(int id, const char* config_file, struct event_base* base)
+/**
+ * Initializes an evacceptor structure with the specified acceptor ID, configuration
+ * file path, and event base. Reads the evpaxos configuration from the specified
+ * file, sets up a peers structure, and starts listening on the acceptor's port.
+ *
+ * @param id The ID of the acceptor.
+ * @param config_file The path to the configuration file.
+ * @param base A pointer to the event base associated with the evacceptor.
+ * @return A pointer to the initialized evacceptor structure, or NULL on failure.
+ */
+struct evacceptor* evacceptor_init(int id, const char* config_file, struct event_base* base)
 {
+	// Read the evpaxos configuration from the specified file.
 	struct evpaxos_config* config = evpaxos_config_read(config_file);
 	if (config  == NULL)
 		return NULL;
 	
+	// Get the total number of acceptors from the configuration
 	int acceptor_count = evpaxos_acceptor_count(config);
+	// Check if the provided acceptor ID is within valid range
 	if (id < 0 || id >= acceptor_count) {
 		paxos_log_error("Invalid acceptor id: %d.", id);
 		paxos_log_error("Should be between 0 and %d", acceptor_count);
@@ -160,25 +227,40 @@ evacceptor_init(int id, const char* config_file, struct event_base* base)
 		return NULL;
 	}
 
+	// Create a new peers structure using the provided event base and configuration
 	struct peers* peers = peers_new(base, config);
+	// Get the port on which the acceptor should listen from the configuration
 	int port = evpaxos_acceptor_listen_port(config, id);
+	// Start listening for connections on the specified port
 	if (peers_listen(peers, port) == 0)
 		return NULL;
+	// Initialize the evacceptor's internal components and return the pointer
 	struct evacceptor* acceptor = evacceptor_init_internal(id, config, peers);
 	evpaxos_config_free(config);
 	return acceptor;
 }
 
-void
-evacceptor_free_internal(struct evacceptor* a)
+/**
+ * Frees resources associated with the internal components of the evacceptor structure,
+ * including event timers and the acceptor's state.
+ *
+ * @param a A pointer to the evacceptor structure to be freed.
+ */
+void evacceptor_free_internal(struct evacceptor* a)
 {
 	event_free(a->timer_ev);
 	acceptor_free(a->state);
 	free(a);
 }
 
-void
-evacceptor_free(struct evacceptor* a)
+/**
+ * Frees resources associated with the evacceptor structure, including the peers
+ * structure and internal components. This function should be used to properly
+ * clean up the memory allocated for an evacceptor instance.
+ *
+ * @param a A pointer to the evacceptor structure to be freed.
+ */
+void evacceptor_free(struct evacceptor* a)
 {
 	peers_free(a->peers);
 	evacceptor_free_internal(a);

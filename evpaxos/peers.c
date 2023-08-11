@@ -81,12 +81,21 @@ static void on_accept(struct evconnlistener* l, evutil_socket_t fd,
 	struct sockaddr* addr, int socklen, void* arg);
 static void socket_set_nodelay(int fd);
 
-/// <summary>
-/// Constructor.
-/// </summary>
-/// <param name="base">event_base*</param>
-/// <param name="config">evpaxos_config*</param>
-/// <returns>struct peers*</returns>
+/**
+ * Create and Initialize a New Peers Structure
+ *
+ * This function is responsible for creating a new instance of the 'peers' structure,
+ * which is used to manage network-related information within a distributed application.
+ * The 'peers' structure integrates with the libevent and msgpack libraries for event
+ * handling and configuration data management.
+ *
+ * @param base A pointer to a libevent event_base object, representing the event loop
+ *             used for managing asynchronous events such as I/O and timers.
+ * @param config A pointer to a msgpack-configured evpaxos_config object containing
+ *               configuration settings relevant to the operation of the program.
+ * @return A pointer to the newly created and initialized peers structure.
+ *         Returns NULL if memory allocation fails.
+ */
 struct peers* peers_new(struct event_base* base, struct evpaxos_config* config)
 {
 	struct peers* p = malloc(sizeof(struct peers));
@@ -101,10 +110,15 @@ struct peers* peers_new(struct event_base* base, struct evpaxos_config* config)
 	return p;
 }
 
-/// <summary>
-/// Release all connection to clients and other peers from given peers.
-/// </summary>
-/// <param name="p">peers what need to be destruct.</param>
+/**
+ * Free Resources of Peers Structure
+ *
+ * This function releases the resources associated with a 'peers' structure, including
+ * lists of peers and clients, as well as any libevent listener instance. It also
+ * deallocates the memory used by the 'peers' structure itself.
+ *
+ * @param p A pointer to the peers structure to be freed.
+ */
 void peers_free(struct peers* p)
 {
 	free_all_peers(p->peers, p->peers_count);
@@ -114,22 +128,30 @@ void peers_free(struct peers* p)
 	free(p);
 }
 
-/// <summary>
-/// Number of connected peers.
-/// </summary>
-/// <param name="p">peers</param>
-/// <returns>Number of connected peers.</returns>
+/**
+ * Get the Count of Peers
+ *
+ * Returns the count of peers currently stored within the provided peers structure.
+ *
+ * @param p A pointer to the peers structure.
+ * @return The count of peers in the structure.
+ */
 int peers_count(struct peers* p)
 {
 	return p->peers_count;
 }
 
-/// <summary>
-/// Set up connections with peer and set up callbacks
-/// </summary>
-/// <param name="p"></param>
-/// <param name="id"></param>
-/// <param name="addr"></param>
+/**
+ * Connect to a Peer
+ *
+ * Establishes a connection to a peer identified by the given ID and address.
+ * This function sets up the necessary event handling, including callbacks for
+ * reading, handling events, and connecting.
+ *
+ * @param p A pointer to the peers structure.
+ * @param id The identifier of the peer.
+ * @param addr A pointer to the sockaddr_in structure representing the peer's address.
+ */
 static void peers_connect(struct peers* p, int id, struct sockaddr_in* addr)
 {
 	p->peers = realloc(p->peers, sizeof(struct peer*) * (p->peers_count + 1));
@@ -143,6 +165,14 @@ static void peers_connect(struct peers* p, int id, struct sockaddr_in* addr)
 	p->peers_count++;
 }
 
+/**
+ * Connect to Acceptors
+ *
+ * Establishes connections to all acceptors based on the provided peers structure's configuration.
+ * It iterates through acceptor addresses, connecting to each acceptor using peers_connect.
+ *
+ * @param p A pointer to the peers structure.
+ */
 void peers_connect_to_acceptors(struct peers* p)
 {
 	int i;
@@ -152,6 +182,15 @@ void peers_connect_to_acceptors(struct peers* p)
 	}
 }
 
+/**
+ * Iterate Through Acceptors
+ *
+ * Executes the given callback function for each acceptor in the peers structure.
+ *
+ * @param p A pointer to the peers structure.
+ * @param cb The callback function to execute for each acceptor.
+ * @param arg An additional argument to pass to the callback function.
+ */
 void peers_foreach_acceptor(struct peers* p, peer_iter_cb cb, void* arg)
 {
 	int i;
@@ -159,6 +198,15 @@ void peers_foreach_acceptor(struct peers* p, peer_iter_cb cb, void* arg)
 		cb(p->peers[i], arg);
 }
 
+/**
+ * Iterate Through Clients
+ *
+ * Executes the given callback function for each client in the peers structure.
+ *
+ * @param p A pointer to the peers structure.
+ * @param cb The callback function to execute for each client.
+ * @param arg An additional argument to pass to the callback function.
+ */
 void peers_foreach_client(struct peers* p, peer_iter_cb cb, void* arg)
 {
 	int i;
@@ -166,6 +214,15 @@ void peers_foreach_client(struct peers* p, peer_iter_cb cb, void* arg)
 		cb(p->clients[i], arg);
 }
 
+/**
+ * Get Acceptor by ID
+ *
+ * Retrieves the peer associated with the provided ID from the peers structure.
+ *
+ * @param p A pointer to the peers structure.
+ * @param id The identifier of the peer.
+ * @return A pointer to the peer structure, or NULL if not found.
+ */
 struct peer* peers_get_acceptor(struct peers* p, int id)
 {
 	int i;
@@ -175,21 +232,54 @@ struct peer* peers_get_acceptor(struct peers* p, int id)
 	return NULL;
 }
 
+/**
+ * Get Buffer Event from Peer
+ *
+ * Retrieves the buffer event associated with the provided peer.
+ *
+ * @param p A pointer to the peer structure.
+ * @return A pointer to the bufferevent associated with the peer.
+ */
 struct bufferevent* peer_get_buffer(struct peer* p)
 {
 	return p->bev;
 }
 
+/**
+ * Get ID of Peer
+ *
+ * Retrieves the identifier of the provided peer.
+ *
+ * @param p A pointer to the peer structure.
+ * @return The identifier of the peer.
+ */
 int peer_get_id(struct peer* p)
 {
 	return p->id;
 }
 
+/**
+ * Check Peer Connection Status
+ *
+ * Checks if the provided peer is connected based on its status.
+ *
+ * @param p A pointer to the peer structure.
+ * @return 1 if connected, 0 if not.
+ */
 int peer_connected(struct peer* p)
 {
 	return p->status == BEV_EVENT_CONNECTED;
 }
 
+/**
+ * Listen for Connections
+ *
+ * Sets up a listener to accept incoming connections on the given port.
+ *
+ * @param p A pointer to the peers structure.
+ * @param port The port to listen on.
+ * @return 1 if successful, 0 if failed.
+ */
 int peers_listen(struct peers* p, int port)
 {
 	struct sockaddr_in addr;
@@ -214,6 +304,17 @@ int peers_listen(struct peers* p, int port)
 	return 1;
 }
 
+/**
+ * Subscribe to Peer Messages
+ *
+ * Adds a subscription for a specific message type, associating a callback function
+ * and an additional argument to the peers structure.
+ *
+ * @param p A pointer to the peers structure.
+ * @param type The message type to subscribe to.
+ * @param cb The callback function to execute when the message is received.
+ * @param arg An additional argument to pass to the callback function.
+ */
 void peers_subscribe(struct peers* p, paxos_message_type type, peer_cb cb, void* arg)
 {
 	struct subscription* sub = &p->subs[p->subs_count];
@@ -223,11 +324,29 @@ void peers_subscribe(struct peers* p, paxos_message_type type, peer_cb cb, void*
 	p->subs_count++;
 }
 
+
+/**
+ * Get Event Base of Peers Structure
+ *
+ * Retrieves the event base associated with the provided peers structure.
+ *
+ * @param p A pointer to the peers structure.
+ * @return A pointer to the event base.
+ */
 struct event_base* 	peers_get_event_base(struct peers* p)
 {
 	return p->base;
 }
 
+/**
+ * Dispatch Message to Subscriptions
+ *
+ * Dispatches a received paxos message to the appropriate subscription callbacks
+ * based on the message type.
+ *
+ * @param p A pointer to the peer structure.
+ * @param msg A pointer to the received paxos message.
+ */
 static void dispatch_message(struct peer* p, paxos_message* msg)
 {
 	int i;
@@ -238,6 +357,15 @@ static void dispatch_message(struct peer* p, paxos_message* msg)
 	}
 }
 
+/**
+ * Callback for Reading Data from Peer
+ *
+ * Handles incoming data from the peer's buffer event by processing paxos messages
+ * and dispatching them to the appropriate subscription callbacks.
+ *
+ * @param bev A pointer to the bufferevent associated with the peer.
+ * @param arg A pointer to the peer structure.
+ */
 static void on_read(struct bufferevent* bev, void* arg)
 {
 	paxos_message msg;
@@ -249,6 +377,16 @@ static void on_read(struct bufferevent* bev, void* arg)
 	}
 }
 
+/**
+ * Callback for Peer Event Handling
+ *
+ * Handles events occurring on the peer's buffer event, such as connection status changes,
+ * errors, or the end of the connection.
+ *
+ * @param bev A pointer to the bufferevent associated with the peer.
+ * @param ev The event flags indicating the type of event.
+ * @param arg A pointer to the peer structure.
+ */
 static void on_peer_event(struct bufferevent* bev, short ev, void* arg)
 {
 	struct peer* p = (struct peer*)arg;
@@ -275,6 +413,16 @@ static void on_peer_event(struct bufferevent* bev, short ev, void* arg)
 	}
 }
 
+
+/**
+ * Callback for Client Event Handling
+ *
+ * Handles events occurring on a client's buffer event, such as connection errors or the end of the connection.
+ *
+ * @param bev A pointer to the bufferevent associated with the client.
+ * @param ev The event flags indicating the type of event.
+ * @param arg A pointer to the peer structure.
+ */
 static void on_client_event(struct bufferevent* bev, short ev, void* arg)
 {
 	struct peer* p = (struct peer*)arg;
@@ -295,11 +443,29 @@ static void on_client_event(struct bufferevent* bev, short ev, void* arg)
 	}
 }
 
+/**
+ * Callback for Connection Timeout
+ *
+ * Handles the case when a connection attempt to a peer times out.
+ *
+ * @param fd The file descriptor associated with the connection attempt.
+ * @param ev The event flags indicating the type of event.
+ * @param arg A pointer to the peer structure.
+ */
 static void on_connection_timeout(int fd, short ev, void* arg)
 {
 	connect_peer((struct peer*)arg);
 }
 
+
+/**
+ * Callback for Listener Error
+ *
+ * Handles errors occurring on the listener and initiates shutting down the event loop.
+ *
+ * @param l A pointer to the evconnlistener structure.
+ * @param arg A pointer to the peers structure.
+ */
 static void on_listener_error(struct evconnlistener* l, void* arg)
 {
 	int err = EVUTIL_SOCKET_ERROR();
@@ -309,6 +475,17 @@ static void on_listener_error(struct evconnlistener* l, void* arg)
 	event_base_loopexit(base, NULL);
 }
 
+/**
+ * Callback for Accepting Connections
+ *
+ * Handles the event of accepting an incoming connection from a client.
+ *
+ * @param l A pointer to the evconnlistener structure.
+ * @param fd The file descriptor associated with the accepted connection.
+ * @param addr A pointer to the sockaddr structure representing the client's address.
+ * @param socklen The length of the sockaddr structure.
+ * @param arg A pointer to the peers structure.
+ */
 static void on_accept(struct evconnlistener* l, evutil_socket_t fd,
 	struct sockaddr* addr, int socklen, void* arg)
 {
@@ -333,10 +510,14 @@ static void on_accept(struct evconnlistener* l, evutil_socket_t fd,
 	peers->clients_count++;
 }
 
-/// <summary>
-/// Set up Socket and connection to peer.
-/// </summary>
-/// <param name="p"></param>
+/**
+ * Connect Peer
+ *
+ * Initiates a connection attempt to the specified peer using the provided buffer event.
+ * Enables read and write events, initiates the socket connection, and sets TCP_NODELAY.
+ *
+ * @param p A pointer to the peer structure.
+ */
 static void connect_peer(struct peer* p)
 {
 	bufferevent_enable(p->bev, EV_READ | EV_WRITE);
@@ -348,13 +529,17 @@ static void connect_peer(struct peer* p)
 }
 
 
-/// <summary>
-/// 
-/// </summary>
-/// <param name="peers"></param>
-/// <param name="id"></param>
-/// <param name="addr"></param>
-/// <returns></returns>
+/**
+ * Create Peer
+ *
+ * Creates a new peer structure and initializes its members with the provided values.
+ * Initializes a buffer event for the peer's communication, sets up other fields, and returns the created peer.
+ *
+ * @param peers A pointer to the peers structure.
+ * @param id The identifier of the peer.
+ * @param addr A pointer to the sockaddr_in structure representing the peer's address.
+ * @return A pointer to the newly created peer structure.
+ */
 static struct peer* make_peer(struct peers* peers, int id, struct sockaddr_in* addr)
 {
 	struct peer* p = malloc(sizeof(struct peer));
@@ -367,6 +552,15 @@ static struct peer* make_peer(struct peers* peers, int id, struct sockaddr_in* a
 	return p;
 }
 
+/**
+ * Free All Peers
+ *
+ * Frees memory and resources associated with an array of peer pointers.
+ * Calls free_peer for each peer and then deallocates the array itself if applicable.
+ *
+ * @param p An array of pointers to peer structures.
+ * @param count The number of peers in the array.
+ */
 static void free_all_peers(struct peer** p, int count)
 {
 	int i;
@@ -376,6 +570,14 @@ static void free_all_peers(struct peer** p, int count)
 		free(p);
 }
 
+/**
+ * Free Peer
+ *
+ * Releases resources and deallocates memory associated with the provided peer structure.
+ * Frees the buffer event and, if applicable, the reconnect event.
+ *
+ * @param p A pointer to the peer structure.
+ */
 static void free_peer(struct peer* p)
 {
 	bufferevent_free(p->bev);
@@ -384,6 +586,13 @@ static void free_peer(struct peer* p)
 	free(p);
 }
 
+/**
+ * Set TCP_NODELAY Socket Option
+ *
+ * Sets the TCP_NODELAY option on the specified socket file descriptor for reduced delay in data transmission.
+ *
+ * @param fd The file descriptor of the socket.
+ */
 static void socket_set_nodelay(int fd)
 {
 	int flag = paxos_config.tcp_nodelay;

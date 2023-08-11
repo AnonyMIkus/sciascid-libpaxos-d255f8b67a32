@@ -66,6 +66,9 @@ struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config,
 	return p;
 }
 
+/**
+ * Delivers a value to the evpaxos replica's deliver function and sets the instance ID.
+ */
 static void evpaxos_replica_deliver(unsigned iid, char* value, size_t size, void* arg)
 {
 	struct evpaxos_replica* r = arg;
@@ -106,6 +109,10 @@ int evpaxos_replica_init_thread(void* inref,void* insyncs, struct evpaxos_parms*
 	return rc;
 }
 
+/**
+ * Initializes an evpaxos replica structure with the provided configuration, deliver function,
+ * argument, and event base.
+ */
 struct evpaxos_replica* evpaxos_replica_init(int id, struct evpaxos_config* c, deliver_function f, void* arg, struct event_base* base)
 {
 	struct evpaxos_replica* r;
@@ -136,6 +143,9 @@ struct evpaxos_replica* evpaxos_replica_init(int id, struct evpaxos_config* c, d
 	return r;
 }
 
+/**
+ * Frees the resources associated with an evpaxos replica structure.
+ */
 void evpaxos_replica_free(struct evpaxos_replica* r)
 {
 	if (r->learner)
@@ -146,6 +156,9 @@ void evpaxos_replica_free(struct evpaxos_replica* r)
 	free(r);
 }
 
+/**
+ * Sets the instance ID for an evpaxos replica.
+ */
 void evpaxos_replica_set_instance_id(struct evpaxos_replica* r, unsigned iid)
 {
 	if (r->learner)
@@ -153,17 +166,30 @@ void evpaxos_replica_set_instance_id(struct evpaxos_replica* r, unsigned iid)
 	evproposer_set_instance_id(r->proposer, iid);
 }
 
+/**
+ * Sends a paxos_trim message to the specified peer.
+ *
+ * @param p Pointer to the peer structure to which the paxos_trim message will be sent.
+ * @param arg A pointer to the argument to be passed to the paxos_trim message.
+ */
 static void peer_send_trim(struct peer* p, void* arg)
 {
 	send_paxos_trim(peer_get_buffer(p), arg);
 }
 
+/**
+ * Sends a paxos_trim message to all acceptors for the specified instance ID.
+ */
 void evpaxos_replica_send_trim(struct evpaxos_replica* r, unsigned iid)
 {
 	paxos_trim trim = {iid};
 	peers_foreach_acceptor(r->peers, peer_send_trim, &trim);
 }
 
+
+/**
+ * Submits a value to the evpaxos replica for processing.
+ */
 void evpaxos_replica_submit(struct evpaxos_replica* r, char* value, int size)
 {
 	int i;
@@ -177,6 +203,9 @@ void evpaxos_replica_submit(struct evpaxos_replica* r, char* value, int size)
 	}
 }
 
+/**
+ * Returns the count of peers associated with the evpaxos replica.
+ */
 int evpaxos_replica_count(struct evpaxos_replica* r)
 {
 	return peers_count(r->peers);
