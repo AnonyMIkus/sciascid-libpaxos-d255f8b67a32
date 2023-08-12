@@ -49,30 +49,30 @@ protected:
 	}
 };
 
-#define CHECK_PROMISE(msg, id, bal, vbal, val) {            \
-	ASSERT_EQ(msg.type, PAXOS_PROMISE);                     \
-	ASSERT_EQ(msg.u.promise.iid, id);                       \
-	ASSERT_EQ(msg.u.promise.ballot, bal);                   \
-	ASSERT_EQ(msg.u.promise.value_ballot, vbal);            \
-	ASSERT_EQ(msg.u.promise.value.paxos_value_len,          \
-		val == NULL ? 0 : strlen(val)+1);                   \
-	ASSERT_STREQ(msg.u.promise.value.paxos_value_val, val); \
+#define CHECK_PROMISE(msg, id, bal, vbal, val) {            
+	ASSERT_EQ(msg.type, PAXOS_PROMISE);                     
+	ASSERT_EQ(msg.u.promise.iid, id);                       
+	ASSERT_EQ(msg.u.promise.ballot, bal);                   
+	ASSERT_EQ(msg.u.promise.value_ballot, vbal);            
+	ASSERT_EQ(msg.u.promise.values[0].paxos_value_len,      
+		val == NULL ? 0 : strlen(val)+1);                   
+	ASSERT_STREQ(msg.u.promise.values[0].paxos_value_val, val); 
 }
 
-#define CHECK_ACCEPTED(msg, id, bal, vbal, val) {            \
-	ASSERT_EQ(msg.type, PAXOS_ACCEPTED);                     \
-	ASSERT_EQ(msg.u.accepted.iid, id);                       \
-	ASSERT_EQ(msg.u.accepted.ballot, bal);                   \
-	ASSERT_EQ(msg.u.accepted.value_ballot, vbal);            \
-	ASSERT_EQ(msg.u.accepted.value.paxos_value_len,          \
-		val == NULL ? 0 : strlen(val)+1);                    \
-	ASSERT_STREQ(msg.u.accepted.value.paxos_value_val, val); \
+#define CHECK_ACCEPTED(msg, id, bal, vbal, val) {            
+	ASSERT_EQ(msg.type, PAXOS_ACCEPTED);                     
+	ASSERT_EQ(msg.u.accepted.iid, id);                       
+	ASSERT_EQ(msg.u.accepted.ballot, bal);                   
+	ASSERT_EQ(msg.u.accepted.value_ballot, vbal);            
+	ASSERT_EQ(msg.u.accepted.value.paxos_value_len,          
+		val == NULL ? 0 : strlen(val)+1);                    
+	ASSERT_STREQ(msg.u.accepted.value.paxos_value_val, val); 
 }
 
-#define CHECK_PREEMPTED(msg, id, bal) {     \
-	ASSERT_EQ(msg.type, PAXOS_PREEMPTED);   \
-	ASSERT_EQ(msg.u.preempted.iid, id);     \
-	ASSERT_EQ(msg.u.preempted.ballot, bal); \
+#define CHECK_PREEMPTED(msg, id, bal) {    
+	ASSERT_EQ(msg.type, PAXOS_PREEMPTED);   
+	ASSERT_EQ(msg.u.preempted.iid, id);     
+	ASSERT_EQ(msg.u.preempted.ballot, bal); 
 }
 
 int counter = 0;

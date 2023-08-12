@@ -92,7 +92,17 @@ paxos_promise_destroy(paxos_promise* p)
 	paxos_log_debug("destroying %lx in promise %lx",p->aids,p);
 	if (p->aids != NULL) free(p -> aids); 
 	p->aids = NULL;
-	paxos_value_destroy(&p->value);
+	paxos_value_destroy(&p->value_0);
+	if (p->values != NULL)
+	{
+		for (int ii = 0; ii < p->n_aids; ii++) paxos_value_destroy(&(p->values[ii]));
+		free(p->values);
+		p->values = NULL;
+	}
+	if (p->ballots != NULL) free(p->ballots);
+	p->ballots = NULL;	
+	if (p->value_ballots != NULL) free(p->value_ballots);
+	p->value_ballots = NULL;
 }
 
 void

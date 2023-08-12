@@ -181,14 +181,14 @@ proposer_receive_promise(struct proposer* p, paxos_promise* ack,
 	paxos_log_debug("Received valid promise from: %d, iid: %u",
 		ack->aids[0], inst->iid);
 		
-	if (ack->value.paxos_value_len > 0) {
+	if (ack->values[0].paxos_value_len > 0) {
 		paxos_log_debug("Promise has value");
 		if (ack->value_ballot > inst->value_ballot) {
 			if (instance_has_promised_value(inst))
 				paxos_value_free(inst->promised_value);
 			inst->value_ballot = ack->value_ballot;
-			inst->promised_value = paxos_value_new(ack->value.paxos_value_val,
-				ack->value.paxos_value_len);
+			inst->promised_value = paxos_value_new(ack->values[0].paxos_value_val,
+				ack->values[0].paxos_value_len);
 			paxos_log_debug("Value in promise saved, removed older value");
 		} else
 			paxos_log_debug("Value in promise ignored");

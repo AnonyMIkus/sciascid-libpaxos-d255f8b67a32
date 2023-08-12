@@ -154,17 +154,23 @@ void msgpack_unpack_paxos_prepare(msgpack_object* o, paxos_prepare* v)
  */
 void msgpack_pack_paxos_promise(msgpack_packer* p, paxos_promise* v)
 {
-	msgpack_pack_array(p, 7+v->n_aids); // Start packing an array with 7 elements
+	msgpack_pack_array(p, 7+v->n_aids+v->n_aids+v->n_aids+v->n_aids); // Start packing an array with 7 elements
 	msgpack_pack_int32(p, PAXOS_PROMISE);
 	msgpack_pack_uint32(p, v->aid_0);
 	msgpack_pack_uint32(p, v->iid);
 	msgpack_pack_uint32(p, v->ballot);
 	msgpack_pack_uint32(p, v->value_ballot);
 	msgpack_pack_uint32(p, v->n_aids);
-	msgpack_pack_paxos_value(p, &v->value);
+	msgpack_pack_paxos_value(p, &v->value_0);
 //	msgpack_pack_array(p, v->n_aids); 
 	for (int i = 0; i < v->n_aids; i++) 
 		msgpack_pack_uint32(p, v->aids[i]); 
+	for (int i = 0; i < v->n_aids; i++)
+		msgpack_pack_paxos_value(p, &(v->values[i]));
+	for (int i = 0; i < v->n_aids; i++)
+		msgpack_pack_uint32(p, v->ballots[i]);
+	for (int i = 0; i < v->n_aids; i++)
+		msgpack_pack_uint32(p, v->value_ballots[i]);
 }
 
 /**
@@ -181,10 +187,19 @@ void msgpack_unpack_paxos_promise(msgpack_object* o, paxos_promise* v)
 	msgpack_unpack_uint32_at(o, &v->ballot, &i);
 	msgpack_unpack_uint32_at(o, &v->value_ballot, &i);
 	msgpack_unpack_uint32_at(o, &v->n_aids, &i);
-	msgpack_unpack_paxos_value_at(o, &v->value, &i); // Unpack the paxos_value structure
+	msgpack_unpack_paxos_value_at(o, &v->value_0, &i); // Unpack the paxos_value structure
 	v->aids = calloc(v->n_aids, sizeof(uint32_t));
 	for (int ii = 0; ii < v->n_aids; ii++)
 		msgpack_unpack_uint32_at(o, &v->aids[ii], &i);
+	v->values = calloc(v->n_aids, sizeof(paxos_value));
+	for (int ii = 0; ii < v->n_aids; ii++)
+		msgpack_unpack_paxos_value_at(o, &v->values[ii], &i);
+	v->ballots = calloc(v->n_aids, sizeof(uint32_t));
+	v->value_ballots = calloc(v->n_aids, sizeof(uint32_t));
+	for (int ii = 0; ii < v->n_aids; ii++)
+		msgpack_unpack_uint32_at(o, &v->ballots[ii], &i);
+	for (int ii = 0; ii < v->n_aids; ii++)
+		msgpack_unpack_uint32_at(o, &v->value_ballots[ii], &i);
 }
 
 /**

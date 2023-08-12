@@ -183,9 +183,17 @@ paxos_accepted_to_promise(paxos_accepted* acc, paxos_message* out)
 		acc->value_ballot,
 		1,
 		calloc(1,sizeof(uint32_t)),
-		{acc->value.paxos_value_len, acc->value.paxos_value_val}
+		{acc->value.paxos_value_len, acc->value.paxos_value_val},
+		calloc(1,sizeof(paxos_value)),
+		calloc(1,sizeof(uint32_t)),
+		calloc(1,sizeof(uint32_t))
 	};
 	out->u.promise.aids[0] = acc->aid;
+	out->u.promise.values[0].paxos_value_len = acc->value.paxos_value_len;
+	out->u.promise.values[0].paxos_value_val = malloc(acc->value.paxos_value_len);
+	memcpy(out->u.promise.values[0].paxos_value_val, acc->value.paxos_value_val, acc->value.paxos_value_len);
+	out->u.promise.ballots[0] = acc->ballot;
+	out->u.promise.value_ballots[0] = acc->value_ballot;
 }
 
 static void
