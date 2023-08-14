@@ -152,6 +152,8 @@ int
 proposer_receive_promise(struct proposer* p, paxos_promise* ack,
 	paxos_prepare* out)
 {
+	int rc = 0;
+
 	khiter_t k = kh_get_instance(p->prepare_instances, ack->iid);
 	
 	if (k == kh_end(p->prepare_instances)) {
@@ -159,42 +161,46 @@ proposer_receive_promise(struct proposer* p, paxos_promise* ack,
 		return 0;
 	}
 	struct instance* inst = kh_value(p->prepare_instances, k);
+	for(int ii=0; ii<ack->n_aids;ii++)
+	{
+		if (ack->ballots[ii] < inst->ballot) {
+			paxos_log_debug("Promise dropped, too old");
+			continue;
+		}
 	
-	if (ack->ballot < inst->ballot) {
-		paxos_log_debug("Promise dropped, too old");
-		return 0;
-	}
+		if (ack->ballots[ii] > inst->ballot) {
+			paxos_log_debug("Instance %u preempted: ballot %d ack ballot %d",
+			inst->iid, inst->ballot, ack->ballots[ii]);
+			proposer_preempt(p, inst, out);
+	//		return 1;
+			rc = 1;
+			continue;
+		}
 	
-	if (ack->ballot > inst->ballot) {
-		paxos_log_debug("Instance %u preempted: ballot %d ack ballot %d",
-			inst->iid, inst->ballot, ack->ballot);
-		proposer_preempt(p, inst, out);
-		return 1;
-	}
-	
-	if (quorum_add(&inst->quorum, ack->aids[0]) == 0) {
-		paxos_log_debug("Duplicate promise dropped from: %d, iid: %u",
-			ack->aids[0], inst->iid);
-		return 0;
-	}
+		if (quorum_add(&inst->quorum, ack->aids[ii]) == 0) {
+			paxos_log_debug("Duplicate promise dropped from: %d, iid: %u",
+			ack->aids[ii], inst->iid);
+		}
 		
-	paxos_log_debug("Received valid promise from: %d, iid: %u",
-		ack->aids[0], inst->iid);
+		paxos_log_debug("Received valid promise from: %d, iid: %u",
+		ack->aids[ii], inst->iid);
 		
-	if (ack->values[0].paxos_value_len > 0) {
-		paxos_log_debug("Promise has value");
-		if (ack->value_ballot > inst->value_ballot) {
-			if (instance_has_promised_value(inst))
-				paxos_value_free(inst->promised_value);
-			inst->value_ballot = ack->value_ballot;
-			inst->promised_value = paxos_value_new(ack->values[0].paxos_value_val,
-				ack->values[0].paxos_value_len);
-			paxos_log_debug("Value in promise saved, removed older value");
-		} else
-			paxos_log_debug("Value in promise ignored");
+		if (ack->values[ii].paxos_value_len > 0) {
+			paxos_log_debug("Promise has value");
+			if (ack->value_ballots[ii] > inst->value_ballot) {
+				if (instance_has_promised_value(inst))
+					paxos_value_free(inst->promised_value);
+				inst->value_ballot = ack->value_ballots[ii];
+				inst->promised_value = paxos_value_new(ack->values[ii].paxos_value_val,
+					ack->values[ii].paxos_value_len);
+				paxos_log_debug("Value in promise saved, removed older value");
+			} else
+				paxos_log_debug("Value in promise ignored");
+		}
 	}
-	
-	return 0;
+
+	return rc;
+
 }
 
 int

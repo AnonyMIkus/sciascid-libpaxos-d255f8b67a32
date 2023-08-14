@@ -76,7 +76,7 @@ protected:
 	
 	void TestAcceptAckFromQuorum(iid_t iid, ballot_t bal, int outcome=1) {
 		for (size_t i = 0; i < quorum; ++i) {
-			paxos_accepted aa = (paxos_accepted) {i, iid, bal, bal};
+			paxos_accepted aa = (paxos_accepted) {i, iid, bal, bal,1,NULL,};
 			ASSERT_EQ(outcome, proposer_receive_accepted(p, &aa));
 		}
 	}
@@ -85,7 +85,7 @@ protected:
 		const char* value, ballot_t vbal = 0) {
 		for (size_t i = 0; i < quorum; ++i) {
 			paxos_accepted aa = (paxos_accepted)
-				{i, iid, bal, vbal, {strlen(value)+1, (char*)value}};
+			{ i, iid, bal, vbal, 1, {strlen(value) + 1, (char*)value} };
 			ASSERT_EQ(1, proposer_receive_accepted(p, &aa));
 		}
 	}
@@ -224,16 +224,20 @@ TEST_F(ProposerTest, PreparePreemptedWithTwoValues) {
 		{1, pr.iid, pr.ballot+1, pr.ballot+1, 1,NULL,{3, (char*)"v2"},NULL,NULL,NULL};
 	paxos_promise pa2 = (paxos_promise)
 		{2, pr.iid, pr.ballot+11, pr.ballot+11, 1,NULL,{3, (char*)"v3"},NULL,NULL,NULL};
+	uint32_t vb = pr.ballot + 1;
+	uint32_t vb1 = pr.ballot + 11;
+	pa1.value_ballots = &vb;
+	pa2.value_ballots = &vb1;
 	
 	proposer_receive_promise(p, &pa1, &preempted);
 	proposer_receive_promise(p, &pa2, &preempted);
 	
-	pa1.ballot = preempted.ballot;
+	pa1.ballots[0] = preempted.ballot;
 	proposer_receive_promise(p, &pa1, &preempted);
 	
 	ASSERT_FALSE(proposer_accept(p, &ar));
 	
-	pa2.ballot = preempted.ballot;
+	pa2.ballots[0] = preempted.ballot;
 	proposer_receive_promise(p, &pa2, &preempted);
 	
 	proposer_accept(p, &ar);

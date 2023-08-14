@@ -101,6 +101,7 @@ acceptor_receive_prepare(struct acceptor* a,
 		acc.aid = a->id;
 		acc.iid = req->iid;
 		acc.ballot = req->ballot;
+		acc.n_aids = 1;
 		if (storage_put_record(&a->store, &acc) != 0) {
 			storage_tx_abort(&a->store);
 			return 0;
@@ -211,6 +212,7 @@ paxos_accept_to_accepted(int id, paxos_accept* acc, paxos_message* out)
 		acc->iid,
 		acc->ballot,
 		acc->ballot,
+		1,
 		{value_size, value}
 	};
 }

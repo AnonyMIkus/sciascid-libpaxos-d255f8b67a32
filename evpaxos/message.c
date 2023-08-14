@@ -89,7 +89,7 @@ void send_paxos_promise(struct bufferevent* bev, paxos_promise* p)
 		.type = PAXOS_PROMISE,
 		.u.promise = *p };
 	send_paxos_message(bev, &msg);
-	paxos_log_debug("Send promise for iid %d ballot %d", p->iid, p->ballot);
+	paxos_log_debug("Send promise for iid %d ballot %d", p->iid, p->ballots[0]);
 }
 
 /**

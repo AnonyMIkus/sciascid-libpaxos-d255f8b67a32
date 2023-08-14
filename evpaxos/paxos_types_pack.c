@@ -158,8 +158,8 @@ void msgpack_pack_paxos_promise(msgpack_packer* p, paxos_promise* v)
 	msgpack_pack_int32(p, PAXOS_PROMISE);
 	msgpack_pack_uint32(p, v->aid_0);
 	msgpack_pack_uint32(p, v->iid);
-	msgpack_pack_uint32(p, v->ballot);
-	msgpack_pack_uint32(p, v->value_ballot);
+	msgpack_pack_uint32(p, v->ballot_0);
+	msgpack_pack_uint32(p, v->value_ballot_0);
 	msgpack_pack_uint32(p, v->n_aids);
 	msgpack_pack_paxos_value(p, &v->value_0);
 //	msgpack_pack_array(p, v->n_aids); 
@@ -184,8 +184,8 @@ void msgpack_unpack_paxos_promise(msgpack_object* o, paxos_promise* v)
 	int i = 1;
 	msgpack_unpack_uint32_at(o, &v->aid_0, &i);
 	msgpack_unpack_uint32_at(o, &v->iid, &i);
-	msgpack_unpack_uint32_at(o, &v->ballot, &i);
-	msgpack_unpack_uint32_at(o, &v->value_ballot, &i);
+	msgpack_unpack_uint32_at(o, &v->ballot_0, &i);
+	msgpack_unpack_uint32_at(o, &v->value_ballot_0, &i);
 	msgpack_unpack_uint32_at(o, &v->n_aids, &i);
 	msgpack_unpack_paxos_value_at(o, &v->value_0, &i); // Unpack the paxos_value structure
 	v->aids = calloc(v->n_aids, sizeof(uint32_t));
@@ -239,12 +239,13 @@ void msgpack_unpack_paxos_accept(msgpack_object* o, paxos_accept* v)
  */
 void msgpack_pack_paxos_accepted(msgpack_packer* p, paxos_accepted* v)
 {
-	msgpack_pack_array(p, 6);
+	msgpack_pack_array(p, 7);
 	msgpack_pack_int32(p, PAXOS_ACCEPTED);
 	msgpack_pack_uint32(p, v->aid);
 	msgpack_pack_uint32(p, v->iid);
 	msgpack_pack_uint32(p, v->ballot);
 	msgpack_pack_uint32(p, v->value_ballot);
+	msgpack_pack_uint32(p, v->n_aids);
 	msgpack_pack_paxos_value(p, &v->value);
 }
 
@@ -261,6 +262,7 @@ void msgpack_unpack_paxos_accepted(msgpack_object* o, paxos_accepted* v)
 	msgpack_unpack_uint32_at(o, &v->iid, &i);
 	msgpack_unpack_uint32_at(o, &v->ballot, &i);
 	msgpack_unpack_uint32_at(o, &v->value_ballot, &i);
+	msgpack_unpack_uint32_at(o, &v->n_aids, &i);
 	msgpack_unpack_paxos_value_at(o, &v->value, &i);
 }
 
