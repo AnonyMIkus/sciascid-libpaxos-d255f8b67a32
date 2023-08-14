@@ -44,17 +44,34 @@ struct evproposer
 	struct event* timeout_ev;
 };
 
-
+/**
+ * Sends a paxos_prepare message to the specified peer.
+ *
+ * @param p Pointer to the peer structure to which the paxos_prepare message will be sent.
+ * @param arg A pointer to the argument to be passed to the paxos_prepare message.
+ */
 static void peer_send_prepare(struct peer* p, void* arg)
 {
 	send_paxos_prepare(peer_get_buffer(p), arg);
 }
 
+
+/**
+ * Sends a paxos_accept message to the specified peer.
+ *
+ * @param p Pointer to the peer structure to which the paxos_accept message will be sent.
+ * @param arg A pointer to the argument to be passed to the paxos_accept message.
+ */
 static void peer_send_accept(struct peer* p, void* arg)
 {
 	send_paxos_accept(peer_get_buffer(p), arg);
 }
 
+/**
+ * Executes the preexecution step for the proposer, preparing instances for acceptance.
+ *
+ * @param p Pointer to the evproposer structure.
+ */
 static void proposer_preexecute(struct evproposer* p)
 {
 	int i;
@@ -68,6 +85,11 @@ static void proposer_preexecute(struct evproposer* p)
 	paxos_log_debug("Opened %d new instances", count);
 }
 
+/**
+ * Attempts to send acceptance messages to the acceptors for the instances that can be accepted.
+ *
+ * @param p Pointer to the evproposer structure.
+ */
 static void try_accept(struct evproposer* p)
 {
 	paxos_accept accept;
@@ -76,6 +98,13 @@ static void try_accept(struct evproposer* p)
 	proposer_preexecute(p);
 }
 
+/**
+ * Handles the promise message received from an acceptor.
+ *
+ * @param p Pointer to the peer structure.
+ * @param msg Pointer to the paxos_message received.
+ * @param arg Pointer to the evproposer structure.
+ */
 static void evproposer_handle_promise(struct peer* p, paxos_message* msg, void* arg)
 {
 	struct evproposer* proposer = arg;
@@ -95,6 +124,13 @@ static void evproposer_handle_accepted(struct peer* p, paxos_message* msg, void*
 		try_accept(proposer);
 }
 
+/**
+ * Handles the accepted message received from an acceptor.
+ *
+ * @param p Pointer to the peer structure.
+ * @param msg Pointer to the paxos_message received.
+ * @param arg Pointer to the evproposer structure.
+ */
 static void evproposer_handle_preempted(struct peer* p, paxos_message* msg, void* arg)
 {
 	struct evproposer* proposer = arg;
@@ -107,6 +143,13 @@ static void evproposer_handle_preempted(struct peer* p, paxos_message* msg, void
 	}
 }
 
+/**
+ * Handles the client_value message received from an acceptor.
+ *
+ * @param p Pointer to the peer structure.
+ * @param msg Pointer to the paxos_message received.
+ * @param arg Pointer to the evproposer structure.
+ */
 static void evproposer_handle_client_value(struct peer* p, paxos_message* msg, void* arg)
 {
 	struct evproposer* proposer = arg;
@@ -117,6 +160,13 @@ static void evproposer_handle_client_value(struct peer* p, paxos_message* msg, v
 	try_accept(proposer);
 }
 
+/**
+ * Handles the acceptor_state message received from an acceptor.
+ *
+ * @param p Pointer to the peer structure.
+ * @param msg Pointer to the paxos_message received.
+ * @param arg Pointer to the evproposer structure.
+ */
 static void evproposer_handle_acceptor_state(struct peer* p, paxos_message* msg, void* arg)
 {
 	struct evproposer* proposer = arg;
@@ -124,6 +174,13 @@ static void evproposer_handle_acceptor_state(struct peer* p, paxos_message* msg,
 	proposer_receive_acceptor_state(proposer->state, acc_state);
 }
 
+/**
+ * Checks for timeouts in the proposer and triggers corresponding actions.
+ *
+ * @param fd File descriptor.
+ * @param event Type of event.
+ * @param arg Pointer to the evproposer structure.
+ */
 static void evproposer_check_timeouts(evutil_socket_t fd, short event, void *arg)
 {
 	struct evproposer* p = arg;
@@ -145,12 +202,27 @@ static void evproposer_check_timeouts(evutil_socket_t fd, short event, void *arg
 	event_add(p->timeout_ev, &p->tv);
 }
 
+/**
+ * Executes the preexecution step for the proposer once.
+ *
+ * @param fd File descriptor.
+ * @param event Type of event.
+ * @param arg Pointer to the evproposer structure.
+ */
 static void evproposer_preexec_once(evutil_socket_t fd, short event, void *arg)
 {
 	struct evproposer* p = arg;
 	proposer_preexecute(p);
 }
 
+/**
+ * Initializes the evproposer structure internally.
+ *
+ * @param id Proposer's ID.
+ * @param c Pointer to the evpaxos_config structure.
+ * @param peers Pointer to the peers structure.
+ * @return Pointer to the initialized evproposer structure.
+ */
 struct evproposer* evproposer_init_internal(int id, struct evpaxos_config* c, struct peers* peers)
 {
 	struct evproposer* p;
@@ -177,11 +249,20 @@ struct evproposer* evproposer_init_internal(int id, struct evpaxos_config* c, st
 	p->state = proposer_new(p->id, acceptor_count);
 	p->peers = peers;
 	
+	// Perform preexecution step using an event base timeout
 	event_base_once(base, 0, EV_TIMEOUT, evproposer_preexec_once, p, NULL);
 
 	return p;
 }
 
+/**
+ * Initializes the evproposer structure.
+ *
+ * @param id Proposer's ID.
+ * @param config_file Path to the configuration file.
+ * @param base Pointer to the event_base structure.
+ * @return Pointer to the initialized evproposer structure.
+ */
 struct evproposer* evproposer_init(int id, const char* config_file, struct event_base* base)
 {
 	struct evpaxos_config* config = evpaxos_config_read(config_file);
@@ -206,19 +287,34 @@ struct evproposer* evproposer_init(int id, const char* config_file, struct event
 	return p;
 }
 
+/**
+ * Frees internal resources of the evproposer structure.
+ *
+ * @param p Pointer to the evproposer structure.
+ */
 void evproposer_free_internal(struct evproposer* p)
 {
 	event_free(p->timeout_ev);
 	proposer_free(p->state);
 	free(p);
 }
-
+/**
+ * Frees resources of the evproposer structure.
+ *
+ * @param p Pointer to the evproposer structure.
+ */
 void evproposer_free(struct evproposer* p)
 {
 	peers_free(p->peers);
 	evproposer_free_internal(p);
 }
 
+/**
+ * Sets the instance ID for the evproposer structure.
+ *
+ * @param p Pointer to the evproposer structure.
+ * @param iid Instance ID to set.
+ */
 void evproposer_set_instance_id(struct evproposer* p, unsigned iid)
 {
 	proposer_set_instance_id(p->state, iid);
