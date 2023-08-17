@@ -37,15 +37,21 @@ struct mem_storage
 	kh_record_t* records;
 };
 
+/**
+ * Copies the contents of a source paxos_accepted structure to a destination.
+ *
+ * @param dst Destination paxos_accepted structure.
+ * @param src Source paxos_accepted structure.
+ */
 static void paxos_accepted_copy(paxos_accepted* dst, paxos_accepted* src);
 
-/// <summary>
-/// Initialize storage for given acceptor (only acceptor_id).
-/// </summary>
-/// <param name="acceptor_id">Given acceptor</param>
-/// <returns>Reference of freshly created storage.</returns>
-static struct mem_storage*
-mem_storage_new(int acceptor_id)
+/**
+ * Creates a new memory-based storage instance.
+ *
+ * @param acceptor_id ID of the acceptor associated with the storage.
+ * @return Pointer to the newly created mem_storage structure.
+ */
+static struct mem_storage* mem_storage_new(int acceptor_id)
 {
 	struct mem_storage* s = malloc(sizeof(struct mem_storage));
 	if (s == NULL)
@@ -55,18 +61,23 @@ mem_storage_new(int acceptor_id)
 	return s;
 }
 
-static int
-mem_storage_open(void* handle)
+/**
+ * Opens the memory storage. This function does not require any action in memory storage.
+ *
+ * @param handle Pointer to the memory storage instance.
+ * @return Always returns 0.
+ */
+static int mem_storage_open(void* handle)
 {
 	return 0;
 }
 
-/// <summary>
-/// It release the hashed values and free-up the allocated memory.
-/// </summary>
-/// <param name="handle">Reference to correct mem_storage</param>
-static void
-mem_storage_close(void* handle)
+/**
+ * Closes the memory storage and frees associated memory.
+ *
+ * @param handle Pointer to the memory storage instance.
+ */
+static void mem_storage_close(void* handle)
 {
 	struct mem_storage* s = handle;
 	paxos_accepted* accepted;
@@ -75,30 +86,45 @@ mem_storage_close(void* handle)
 	free(s);
 }
 
-static int
-mem_storage_tx_begin(void* handle)
+/**
+ * Begins a transaction in the memory storage. This function does not require any action in memory storage.
+ *
+ * @param handle Pointer to the memory storage instance.
+ * @return Always returns 0.
+ */
+static int mem_storage_tx_begin(void* handle)
 {
 	return 0;
 }
 
-static int
-mem_storage_tx_commit(void* handle)
+/**
+ * Commits a transaction in the memory storage. This function does not require any action in memory storage.
+ *
+ * @param handle Pointer to the memory storage instance.
+ * @return Always returns 0.
+ */
+static int mem_storage_tx_commit(void* handle)
 {
 	return 0;
 }
 
-static void
-mem_storage_tx_abort(void* handle) { }
 
-/// <summary>
-/// Checks if a value already exist in hash map.
-/// </summary>
-/// <param name="handle">Storage in Memory.</param>
-/// <param name="iid">Id of ballot</param>
-/// <param name="out"></param>
-/// <returns>0: not found, 1: found</returns>
-static int
-mem_storage_get(void* handle, iid_t iid, paxos_accepted* out)
+/**
+ * Aborts a transaction in the memory storage. This function does not require any action in memory storage.
+ *
+ * @param handle Pointer to the memory storage instance.
+ */
+static void mem_storage_tx_abort(void* handle) { }
+
+/**
+ * Retrieves an accepted value from memory storage.
+ *
+ * @param handle Pointer to the memory storage instance.
+ * @param iid Instance ID of the accepted value.
+ * @param out Pointer to the paxos_accepted structure to store the retrieved value.
+ * @return 1 if value is found and retrieved, 0 otherwise.
+ */
+static int mem_storage_get(void* handle, iid_t iid, paxos_accepted* out)
 {
 	khiter_t k;
 	struct mem_storage* s = handle;
@@ -109,8 +135,14 @@ mem_storage_get(void* handle, iid_t iid, paxos_accepted* out)
 	return 1;
 }
 
-static int
-mem_storage_put(void* handle, paxos_accepted* acc)
+/**
+ * Stores an accepted value in memory storage.
+ *
+ * @param handle Pointer to the memory storage instance.
+ * @param acc Pointer to the paxos_accepted structure to store.
+ * @return 0 if successfully stored, -1 on error.
+ */
+static int mem_storage_put(void* handle, paxos_accepted* acc)
 {
 	int rv;
 	khiter_t k;
@@ -129,8 +161,14 @@ mem_storage_put(void* handle, paxos_accepted* acc)
 	return 0;
 }
 
-static int
-mem_storage_trim(void* handle, iid_t iid)
+/**
+ * Trims instances in memory storage up to a specified instance ID.
+ *
+ * @param handle Pointer to the memory storage instance.
+ * @param iid Instance ID up to which instances should be trimmed.
+ * @return Always returns 0.
+ */
+static int mem_storage_trim(void* handle, iid_t iid)
 {
 	khiter_t k;
 	struct mem_storage* s = handle;
@@ -147,15 +185,25 @@ mem_storage_trim(void* handle, iid_t iid)
 	return 0;
 }
 
-static iid_t
-mem_storage_get_trim_instance(void* handle)
+/**
+ * Retrieves the trim instance ID from memory storage.
+ *
+ * @param handle Pointer to the memory storage instance.
+ * @return The trim instance ID.
+ */
+static iid_t mem_storage_get_trim_instance(void* handle)
 {
 	struct mem_storage* s = handle;
 	return s->trim_iid;
 }
 
-static void
-paxos_accepted_copy(paxos_accepted* dst, paxos_accepted* src)
+/**
+ * Copies the contents of a source paxos_accepted structure to a destination.
+ *
+ * @param dst Destination paxos_accepted structure.
+ * @param src Source paxos_accepted structure.
+ */
+static void paxos_accepted_copy(paxos_accepted* dst, paxos_accepted* src)
 {
 	memcpy(dst, src, sizeof(paxos_accepted));
 	if (dst->value.paxos_value_len > 0) {
@@ -165,14 +213,14 @@ paxos_accepted_copy(paxos_accepted* dst, paxos_accepted* src)
 	}
 }
 
-/// <summary>
-/// Initialize storage for Memory usage instead of LMDB.
-/// 
-/// </summary>
-/// <param name="s">Storage of current Acceptor</param>
-/// <param name="acceptor_id">ID of current Acceptor</param>
-void
-storage_init_mem(struct storage* s, int acceptor_id)
+
+/**
+ * Initializes a memory storage structure within the provided storage instance.
+ *
+ * @param s Pointer to the storage instance.
+ * @param acceptor_id ID of the acceptor associated with the storage.
+ */
+void storage_init_mem(struct storage* s, int acceptor_id)
 {
 	s->handle = mem_storage_new(acceptor_id);
 	s->api.open = mem_storage_open;

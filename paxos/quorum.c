@@ -31,9 +31,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-void
-quorum_init(struct quorum* q, int acceptors)
+ /**
+  * Initializes the quorum structure with the given number of acceptors.
+  *
+  * @param q Pointer to the quorum structure to initialize.
+  * @param acceptors Total number of acceptors in the system.
+  */
+void quorum_init(struct quorum* q, int acceptors)
 {
 	q->acceptors = acceptors;
 	q->quorum = paxos_quorum(acceptors);
@@ -41,21 +45,35 @@ quorum_init(struct quorum* q, int acceptors)
 	quorum_clear(q);
 }
 
-void
-quorum_clear(struct quorum* q)
+/**
+ * Clears the quorum state by resetting the acceptor presence tracking.
+ *
+ * @param q Pointer to the quorum structure to clear.
+ */
+void quorum_clear(struct quorum* q)
 {
 	q->count = 0;
-	memset(q->acceptor_ids, 0, sizeof(int) * q->acceptors);
+	memset(q->acceptor_ids, 0, sizeof(int) * q->acceptors); // Reset the acceptor presence tracking.
 }
 
-void
-quorum_destroy(struct quorum* q)
+/**
+ * Frees memory allocated for the quorum structure.
+ *
+ * @param q Pointer to the quorum structure to destroy.
+ */
+void quorum_destroy(struct quorum* q)
 {
 	free(q->acceptor_ids);
 }
 
-int
-quorum_add(struct quorum* q, int id)
+/**
+ * Adds an acceptor to the quorum if not already added.
+ *
+ * @param q Pointer to the quorum structure.
+ * @param id ID of the acceptor to add.
+ * @return 1 if the acceptor was successfully added, 0 if it was already present.
+ */
+int quorum_add(struct quorum* q, int id)
 {
 	if (q->acceptor_ids[id] == 0) {
 		q->count++;
@@ -65,8 +83,13 @@ quorum_add(struct quorum* q, int id)
 	return 0;
 }
 
-int
-quorum_reached(struct quorum* q)
+/**
+ * Checks if the quorum size has been reached.
+ *
+ * @param q Pointer to the quorum structure.
+ * @return 1 if the quorum size has been reached, 0 otherwise.
+ */
+int quorum_reached(struct quorum* q)
 {
-	return (q->count >= q->quorum);
+	return (q->count >= q->quorum); // Check if the count of acceptors in the quorum is sufficient.
 }
