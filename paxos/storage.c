@@ -34,8 +34,7 @@
 /// </summary>
 /// <param name="store">Reference  to dereferenced storage that is inside of current Acceptor.</param>
 /// <param name="acceptor_id">Id of current Acceptor</param>
-void
-storage_init(struct storage* store, int acceptor_id)
+void storage_init(struct storage* store, int acceptor_id)
 {
 	switch(paxos_config.storage_backend) { // Checking which storage is accessible.
 		case PAXOS_MEM_STORAGE: // Storage works in Memory. Use of storage_mem.c.
@@ -64,26 +63,22 @@ storage_init(struct storage* store, int acceptor_id)
 *	If we use storage_close, it can call mem_storage_close with handle who is using a correct reference of struct mem_storage.
 *	The allocated memory will be freed.
 */
-int
-storage_open(struct storage* store)
+int storage_open(struct storage* store)
 {
 	return store->api.open(store->handle);
 }
 
-void
-storage_close(struct storage* store)
+void storage_close(struct storage* store)
 {
 	store->api.close(store->handle);
 }
 
-int
-storage_tx_begin(struct storage* store)
+int storage_tx_begin(struct storage* store)
 {
 	return store->api.tx_begin(store->handle);
 }
 
-int
-storage_tx_commit(struct storage* store)
+int storage_tx_commit(struct storage* store)
 {
 	return store->api.tx_commit(store->handle);
 }
@@ -112,8 +107,7 @@ storage_trim(struct storage* store, iid_t iid)
 	return store->api.trim(store->handle, iid);
 }
 
-iid_t
-storage_get_trim_instance(struct storage* store)
+iid_t storage_get_trim_instance(struct storage* store)
 {
 	return store->api.get_trim_instance(store->handle);
 }

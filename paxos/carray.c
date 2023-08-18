@@ -43,8 +43,7 @@ static int carray_full(struct carray* a);
 static void carray_grow(struct carray* a);
 static void* carray_at(struct carray* a, int i);
 
-struct carray*
-carray_new(int size)
+struct carray* carray_new(int size)
 {
 	struct carray* a;
 	a = malloc(sizeof(struct carray));
@@ -58,27 +57,23 @@ carray_new(int size)
 	return a;
 }
 
-void
-carray_free(struct carray* a)
+void carray_free(struct carray* a)
 {
 	free(a->array);
 	free(a);
 }
 
-int
-carray_empty(struct carray* a)
+int carray_empty(struct carray* a)
 {
 	return a->count == 0;
 }
 
-int
-carray_size(struct carray* a)
+int carray_size(struct carray* a)
 {
 	return a->size;
 }
 
-int
-carray_push_back(struct carray* a, void* p)
+int carray_push_back(struct carray* a, void* p)
 {
 	if (carray_full(a))
 		carray_grow(a);
@@ -88,8 +83,7 @@ carray_push_back(struct carray* a, void* p)
 	return 0;
 }
 
-void*
-carray_pop_front(struct carray* a)
+void* carray_pop_front(struct carray* a)
 {
 	void* p;
 	if (carray_empty(a)) return NULL;
@@ -99,22 +93,19 @@ carray_pop_front(struct carray* a)
 	return p;
 }
 
-void
-carray_foreach(struct carray* a, void (*carray_cb)(void*))
+void carray_foreach(struct carray* a, void (*carray_cb)(void*))
 {
 	int i;
 	for (i = 0; i < a->count; ++i)
 		carray_cb(carray_at(a, i));
 }
 
-static int
-carray_full(struct carray* a)
+static int carray_full(struct carray* a)
 {
 	return a->count == a->size;
 }
 
-static void
-carray_grow(struct carray* a)
+static void carray_grow(struct carray* a)
 {
 	int i;
 	struct carray* tmp = carray_new(a->size * 2);
@@ -128,8 +119,7 @@ carray_grow(struct carray* a)
 	free(tmp);
 }
 
-static void*
-carray_at(struct carray* a, int i)
+static void* carray_at(struct carray* a, int i)
 {
 	return a->array[(a->head+i) % a->size];
 }

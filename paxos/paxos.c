@@ -33,6 +33,9 @@
 #include <time.h>
 #include <sys/time.h>
 
+ /**
+  * Configuration structure for Paxos settings.
+  */
 struct paxos_config paxos_config =
 {
 	.verbosity = PAXOS_LOG_INFO,
@@ -48,14 +51,12 @@ struct paxos_config paxos_config =
 };
 
 
-int
-paxos_quorum(int acceptors)
+int paxos_quorum(int acceptors)
 {
 	return (acceptors/2)+1;
 }
 
-paxos_value*
-paxos_value_new(const char* value, size_t size)
+paxos_value* paxos_value_new(const char* value, size_t size)
 {
 	paxos_value* v;
 	v = malloc(sizeof(paxos_value));
@@ -65,29 +66,25 @@ paxos_value_new(const char* value, size_t size)
 	return v;
 }
 
-void
-paxos_value_free(paxos_value* v)
+void paxos_value_free(paxos_value* v)
 {
 	free(v->paxos_value_val);
 	free(v);
 }
 
-static void
-paxos_value_destroy(paxos_value* v)
+static void paxos_value_destroy(paxos_value* v)
 {
 	if (v->paxos_value_len > 0)
 		free(v->paxos_value_val);	
 }
 
-void
-paxos_accepted_free(paxos_accepted* a)
+void paxos_accepted_free(paxos_accepted* a)
 {
 	paxos_accepted_destroy(a);
 	free(a);
 }
 
-void
-paxos_promise_destroy(paxos_promise* p)
+void paxos_promise_destroy(paxos_promise* p)
 {
 	paxos_log_debug("destroying %lx in promise %lx",p->aids,p);
 	if (p->aids != NULL) free(p -> aids); 
@@ -105,27 +102,24 @@ paxos_promise_destroy(paxos_promise* p)
 	p->value_ballots = NULL;
 }
 
-void
-paxos_accept_destroy(paxos_accept* p)
+void paxos_accept_destroy(paxos_accept* p)
 {
 	paxos_value_destroy(&p->value);
 }
 
-void
-paxos_accepted_destroy(paxos_accepted* p)
+void paxos_accepted_destroy(paxos_accepted* p)
 {
 	paxos_value_destroy(&p->value);
 }
 
-void
-paxos_client_value_destroy(paxos_client_value* p)
+void paxos_client_value_destroy(paxos_client_value* p)
 {
 	paxos_value_destroy(&p->value);
 }
 
-void
-paxos_message_destroy(paxos_message* m)
+void paxos_message_destroy(paxos_message* m)
 {
+	paxos_log_debug("destroying message %lx",m);
 	switch (m->type) {
 	case PAXOS_PROMISE:
 		paxos_promise_destroy(&m->u.promise);
@@ -141,10 +135,11 @@ paxos_message_destroy(paxos_message* m)
 		break;
 	default: break;
 	}
+	paxos_log_debug("destroyed message %lx", m);
+
 }
 
-void
-paxos_log(int level, const char* format, va_list ap)
+void paxos_log(int level, const char* format, va_list ap)
 {
 	int off;
 	char msg[1024];
@@ -159,8 +154,7 @@ paxos_log(int level, const char* format, va_list ap)
 	fprintf(stdout,"%s\n", msg);
 }
 
-void
-paxos_log_error(const char* format, ...)
+void paxos_log_error(const char* format, ...)
 {
 	va_list ap;
 	va_start(ap, format);
@@ -168,8 +162,7 @@ paxos_log_error(const char* format, ...)
 	va_end(ap);
 }
 
-void
-paxos_log_info(const char* format, ...)
+void paxos_log_info(const char* format, ...)
 {
 	va_list ap;
 	va_start(ap, format);
@@ -177,8 +170,7 @@ paxos_log_info(const char* format, ...)
 	va_end(ap);
 }
 
-void
-paxos_log_debug(const char* format, ...)
+void paxos_log_debug(const char* format, ...)
 {
 	va_list ap;
 	va_start(ap, format);

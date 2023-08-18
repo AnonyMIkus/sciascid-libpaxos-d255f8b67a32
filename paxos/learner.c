@@ -39,6 +39,7 @@ struct instance
 	paxos_accepted** acks;
 	paxos_accepted* final_value;
 };
+/** Define a hash map for instances with integer keys */
 KHASH_MAP_INIT_INT(instance, struct instance*)
 
 struct learner
@@ -86,19 +87,30 @@ learner_free(struct learner* l)
 	free(l);
 }
 
-void
-learner_set_instance_id(struct learner* l, iid_t iid)
+
+/**
+ * Sets the current instance ID for the learner.
+ *
+ * @param l Pointer to the learner instance.
+ * @param iid Instance ID to be set.
+ */
+void learner_set_instance_id(struct learner* l, iid_t iid)
 {
 	l->current_iid = iid + 1;
 	l->highest_iid_closed = iid;
 }
 
-void
-learner_receive_accepted(struct learner* l, paxos_accepted* ack)
+/**
+ * Handles the reception of an accepted message by the learner.
+ *
+ * @param l Pointer to the learner instance.
+ * @param ack Pointer to the received paxos_accepted message.
+ */
+void learner_receive_accepted(struct learner* l, paxos_accepted* ack)
 {	
 	if (l->late_start) {
-		l->late_start = 0;
-		l->current_iid = ack->iid;
+		l->late_start = 0; // Turn off late start flag
+		l->current_iid = ack->iid; // Set current instance ID
 	}
 	
 	if (ack->iid < l->current_iid) {
@@ -110,17 +122,27 @@ learner_receive_accepted(struct learner* l, paxos_accepted* ack)
 	struct instance* inst;
 	inst = learner_get_instance_or_create(l, ack->iid);
 	
+	// Update instance with accepted message
 	instance_update(inst, ack, l->acceptors);
 	
+	// If instance has a quorum and is not yet closed, update highest closed instance ID
 	if (instance_has_quorum(inst, l->acceptors)
 		&& (inst->iid > l->highest_iid_closed))
 		l->highest_iid_closed = inst->iid;
 }
 
-int
-learner_deliver_next(struct learner* l, paxos_accepted* out)
+}
+/**
+ * Attempts to deliver the next accepted value from the learner's instance queue.
+ *
+ * @param l Pointer to the learner instance.
+ * @param out Pointer to store the delivered paxos_accepted value.
+ * @return 1 if a value was successfully delivered, 0 otherwise.
+ */
+int learner_deliver_next(struct learner* l, paxos_accepted* out)
 {
 	struct instance* inst = learner_get_current_instance(l);
+	// If no current instance or quorum is missing, cannot deliver
 	if (inst == NULL || !instance_has_quorum(inst, l->acceptors))
 		return 0;
 	memcpy(out, inst->final_value, sizeof(paxos_accepted));
@@ -130,19 +152,32 @@ learner_deliver_next(struct learner* l, paxos_accepted* out)
 	return 1;
 }
 
-int
-learner_has_holes(struct learner* l, iid_t* from, iid_t* to)
+/**
+ * Checks if there are any "holes" in the learner's instance sequence.
+ *
+ * @param l Pointer to the learner instance.
+ * @param from Pointer to store the starting instance ID of the hole.
+ * @param to Pointer to store the ending instance ID of the hole.
+ * @return 1 if holes are found, 0 otherwise.
+ */
+int learner_has_holes(struct learner* l, iid_t* from, iid_t* to)
 {
 	if (l->highest_iid_closed > l->current_iid) {
 		*from = l->current_iid;
 		*to = l->highest_iid_closed;
-		return 1;
+		return 1;// Holes are found
 	}
-	return 0;
+	return 0; // No holes
 }
 
-static struct instance*
-learner_get_instance(struct learner* l, iid_t iid)
+/**
+ * Retrieves an instance with a specific instance ID from the learner's instance map.
+ *
+ * @param l Pointer to the learner instance.
+ * @param iid Instance ID to retrieve.
+ * @return Pointer to the retrieved instance, or NULL if not found.
+ */
+static struct instance* learner_get_instance(struct learner* l, iid_t iid)
 {
 	khiter_t k;
 	k = kh_get_instance(l->instances, iid);
@@ -151,19 +186,31 @@ learner_get_instance(struct learner* l, iid_t iid)
 	return kh_value(l->instances, k);
 }
 
-static struct instance*
-learner_get_current_instance(struct learner* l)
+/**
+ * Retrieves the current instance of the learner.
+ *
+ * @param l Pointer to the learner instance.
+ * @return Pointer to the current instance, or NULL if not found.
+ */
+static struct instance* learner_get_current_instance(struct learner* l)
 {
 	return learner_get_instance(l, l->current_iid);
 }
 
-static struct instance*
-learner_get_instance_or_create(struct learner* l, iid_t iid)
+/**
+ * Retrieves an instance with a specific instance ID from the learner's instance map.
+ * If the instance does not exist, creates a new instance and adds it to the map.
+ *
+ * @param l Pointer to the learner instance.
+ * @param iid Instance ID to retrieve or create.
+ * @return Pointer to the retrieved or newly created instance.
+ */
+static struct instance* learner_get_instance_or_create(struct learner* l, iid_t iid)
 {
 	struct instance* inst = learner_get_instance(l, iid);
 	if (inst == NULL) {
 		int rv;
-		khiter_t k = kh_put_instance(l->instances, iid, &rv);
+		khiter_t k = kh_put_instance(l->instances, iid, &rv); // Store the instance in the map
 		assert(rv != -1);
 		inst = instance_new(l->acceptors);
 		kh_value(l->instances, k) = inst;
@@ -171,54 +218,78 @@ learner_get_instance_or_create(struct learner* l, iid_t iid)
 	return inst;
 }
 
-static void
-learner_delete_instance(struct learner* l, struct instance* inst)
+/**
+ * Deletes an instance from the learner's instance map and frees its resources.
+ *
+ * @param l Pointer to the learner instance.
+ * @param inst Pointer to the instance to be deleted.
+ */
+static void learner_delete_instance(struct learner* l, struct instance* inst)
 {
 	khiter_t k;
 	k = kh_get_instance(l->instances, inst->iid);
-	kh_del_instance(l->instances, k);
-	instance_free(inst, l->acceptors);
+	kh_del_instance(l->instances, k);	// Remove instance from the map
+	instance_free(inst, l->acceptors);	// Free resources associated with the instance
 }
 
-static struct instance*
-instance_new(int acceptors)
+/**
+ * Creates a new instance with allocated memory for the acknowledgments.
+ *
+ * @param acceptors Number of acceptors for which acknowledgments will be stored.
+ * @return Pointer to the newly created instance.
+ */
+static struct instance* instance_new(int acceptors)
 {
 	int i;
 	struct instance* inst;
 	inst = malloc(sizeof(struct instance));
 	memset(inst, 0, sizeof(struct instance));
-	inst->acks = malloc(sizeof(paxos_accepted*) * acceptors);
+	inst->acks = malloc(sizeof(paxos_accepted*) * acceptors); // Allocate memory for acks
 	for (i = 0; i < acceptors; ++i)
 		inst->acks[i] = NULL;
 	return inst;
 }
 
-static void
-instance_free(struct instance* inst, int acceptors)
+/**
+ * Frees the resources associated with an instance, including the acks array.
+ *
+ * @param inst Pointer to the instance to be freed.
+ * @param acceptors Number of acceptors for which acknowledgments are stored.
+ */
+static void instance_free(struct instance* inst, int acceptors)
 {
 	int i;
 	for (i = 0; i < acceptors; i++)
-		if (inst->acks[i] != NULL)
-			paxos_accepted_free(inst->acks[i]);
-	free(inst->acks);
-	free(inst);
+		if (inst->acks[i] != NULL);
+			paxos_accepted_free(inst->acks[i]); // Free individual acks
+	free(inst->acks);	// Free the acks array
+	free(inst);			// Free the instance itself
 }
 
-static void
-instance_update(struct instance* inst, paxos_accepted* accepted, int acceptors)
+/**
+ * Updates an instance with a received accepted value.
+ *
+ * @param inst Pointer to the instance to be updated.
+ * @param accepted Pointer to the received paxos_accepted value.
+ * @param acceptors Number of acceptors for which acknowledgments are stored.
+ */
+static void instance_update(struct instance* inst, paxos_accepted* accepted, int acceptors)
 {	
+	// Initialize the instance if it's the first message received for it
 	if (inst->iid == 0) {
 		paxos_log_debug("Received first message for iid: %u", accepted->iid);
 		inst->iid = accepted->iid;
 		inst->last_update_ballot = accepted->ballot;
 	}
 	
+	// If the instance is already closed, drop the message
 	if (instance_has_quorum(inst, acceptors)) {
 		paxos_log_debug("Dropped paxos_accepted iid %u. Already closed.",
 			accepted->iid);
 		return;
 	}
 	
+	// Check if the received ballot is newer than the previous ballot
 	paxos_accepted* prev_accepted = inst->acks[accepted->aid];
 	if (prev_accepted != NULL && prev_accepted->ballot >= accepted->ballot) {
 		paxos_log_debug("Dropped paxos_accepted for iid %u."
@@ -226,6 +297,7 @@ instance_update(struct instance* inst, paxos_accepted* accepted, int acceptors)
 		return;
 	}
 	
+	// Add the received accepted value to the instance's acks array
 	instance_add_accept(inst, accepted);
 }
 
@@ -234,15 +306,24 @@ instance_update(struct instance* inst, paxos_accepted* accepted, int acceptors)
 	accepted the same value ballot pair. 
 	Returns 1 if the instance is closed, 0 otherwise.
 */
-static int 
-instance_has_quorum(struct instance* inst, int acceptors)
+
+/**
+ * Checks if the instance has achieved a quorum for acceptance.
+ *
+ * @param inst Pointer to the instance to be checked.
+ * @param acceptors Number of acceptors in the system.
+ * @return 1 if a quorum has been reached, 0 otherwise.
+ */
+static int instance_has_quorum(struct instance* inst, int acceptors)
 {
 	paxos_accepted* curr_ack;
 	int i, a_valid_index = -1, count = 0;
 
+	// If a final value has been set, the instance is considered closed
 	if (inst->final_value != NULL)
 		return 1;
 	
+	// Iterate through acceptor acknowledgments
 	for (i = 0; i < acceptors; i++) {
 		curr_ack = inst->acks[i];
 	
@@ -256,6 +337,7 @@ instance_has_quorum(struct instance* inst, int acceptors)
 		}
 	}
 
+	// Check if a quorum has been reached and set the final value if so
 	if (count >= paxos_quorum(acceptors)) {
 		paxos_log_debug("Reached quorum, iid: %u is closed!", inst->iid);
 		inst->final_value = inst->acks[a_valid_index];
@@ -268,8 +350,14 @@ instance_has_quorum(struct instance* inst, int acceptors)
 	Adds the given paxos_accepted to the given instance, 
 	replacing the previous paxos_accepted, if any.
 */
-static void
-instance_add_accept(struct instance* inst, paxos_accepted* accepted)
+
+/**
+ * Adds an accepted value to the instance's acknowledgments array.
+ *
+ * @param inst Pointer to the instance to be updated.
+ * @param accepted Pointer to the accepted value to be added.
+ */
+static void instance_add_accept(struct instance* inst, paxos_accepted* accepted)
 {
 	int acceptor_id = accepted->aid;
 	if (inst->acks[acceptor_id] != NULL)
@@ -281,8 +369,14 @@ instance_add_accept(struct instance* inst, paxos_accepted* accepted)
 /*
 	Returns a copy of it's argument.
 */
-static paxos_accepted*
-paxos_accepted_dup(paxos_accepted* ack)
+
+/**
+ * Creates a copy of a paxos_accepted structure.
+ *
+ * @param ack Pointer to the paxos_accepted structure to be duplicated.
+ * @return Pointer to the newly duplicated paxos_accepted structure.
+ */
+static paxos_accepted* paxos_accepted_dup(paxos_accepted* ack)
 {
 	paxos_accepted* copy;
 	copy = malloc(sizeof(paxos_accepted));
@@ -291,8 +385,13 @@ paxos_accepted_dup(paxos_accepted* ack)
 	return copy;
 }
 
-static void
-paxos_value_copy(paxos_value* dst, paxos_value* src)
+/**
+ * Copies the value from one paxos_value structure to another.
+ *
+ * @param dst Pointer to the destination paxos_value structure.
+ * @param src Pointer to the source paxos_value structure.
+ */
+static void paxos_value_copy(paxos_value* dst, paxos_value* src)
 {
 	int len = src->paxos_value_len;
 	dst->paxos_value_len = len;

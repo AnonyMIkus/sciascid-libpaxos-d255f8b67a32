@@ -42,52 +42,59 @@ static void paxos_accepted_to_promise(paxos_accepted* acc, paxos_message* out);
 static void paxos_accept_to_accepted(int id, paxos_accept* acc, paxos_message* out);
 static void paxos_accepted_to_preempted(int id, paxos_accepted* acc, paxos_message* out);
 
-/// <summary>
-/// It create an Acceptor and prepare storage.
-/// </summary>
-/// <param name="id">Give an unique ID (UID) to an acceptor</param>
-/// <returns>Return an acceptor after successful checks.</returns>
-struct acceptor*
-acceptor_new(int id)
+/**
+ * Creates a new instance of the acceptor structure.
+ *
+ * @param id Identifier for the acceptor.
+ * @return Pointer to the newly created acceptor structure, or NULL on failure.
+ */
+struct acceptor* acceptor_new(int id)
 {
 	struct acceptor* a; // Prepare Pointer to Acceptor struct.
 	a = malloc(sizeof(struct acceptor)); // Allocating Memory for Acceptor.
-	storage_init(&a->store, id); // Initialize storage for Acceptor
-	if (storage_open(&a->store) != 0) { // Checking for 0. If an errror occur you then you get something else then 0 (Even if the storage is returning 0 and it don't seem to make sense). It is just checking processes and nothing more.
+
+	// Initialize storage for Acceptor
+	storage_init(&a->store, id);
+
+	// Open storage; return NULL on error
+	if (storage_open(&a->store) != 0) {
 		free(a);
 		return NULL;
 	}
+
+	// Begin transaction for storage
 	if (storage_tx_begin(&a->store) != 0)
 		return NULL;
 	a->id = id;
 	a->trim_iid = storage_get_trim_instance(&a->store);
+
+	// Commit transaction for storage
 	if (storage_tx_commit(&a->store) != 0)
 		return NULL;
 	return a;
 }
 
 
-/// <summary>
-/// Destructor --> free memory. Yay.
-/// </summary>
-/// <param name="a">Reference to acceptor</param>
-void
-acceptor_free(struct acceptor* a) 
+/**
+ * Frees the resources associated with an acceptor structure.
+ *
+ * @param a Pointer to the acceptor structure to be freed.
+ */
+void acceptor_free(struct acceptor* a) 
 {
 	storage_close(&a->store);
 	free(a);
 }
 
-/// <summary>
-/// Prepare-phase of Paxos.
-/// </summary>
-/// <param name="a">Acceptor</param>
-/// <param name="req">Getting a request of preparation.</param>
-/// <param name="out"></param>
-/// <returns>0: unsuccessful, 1: successful</returns>
-int
-acceptor_receive_prepare(struct acceptor* a, 
-	paxos_prepare* req, paxos_message* out)
+/**
+ * Receives and processes a prepare request from a proposer.
+ *
+ * @param a Pointer to the acceptor structure.
+ * @param req Pointer to the prepare request.
+ * @param out Pointer to the paxos_message structure to store the response.
+ * @return 1 if the prepare request was successfully processed, 0 otherwise.
+ */
+int acceptor_receive_prepare(struct acceptor* a, paxos_prepare* req, paxos_message* out)
 {
 	paxos_accepted acc; // paxos_accepted and paxos_prepare (in parameter of function) are in paxos_types.h
 	if (req->iid <= a->trim_iid)
@@ -113,9 +120,16 @@ acceptor_receive_prepare(struct acceptor* a,
 	return 1;
 }
 
-int
-acceptor_receive_accept(struct acceptor* a,
-	paxos_accept* req, paxos_message* out)
+
+/**
+ * Receives and processes an accept request from a proposer.
+ *
+ * @param a Pointer to the acceptor structure.
+ * @param req Pointer to the accept request.
+ * @param out Pointer to the paxos_message structure to store the response.
+ * @return 1 if the accept request was successfully processed, 0 otherwise.
+ */
+int acceptor_receive_accept(struct acceptor* a, paxos_accept* req, paxos_message* out)
 {
 	paxos_accepted acc;
 	if (req->iid <= a->trim_iid)
@@ -140,8 +154,16 @@ acceptor_receive_accept(struct acceptor* a,
 	return 1;
 }
 
-int
-acceptor_receive_repeat(struct acceptor* a, iid_t iid, paxos_accepted* out)
+/**
+ * Receives a repeat request for a specific instance ID and retrieves the
+ * corresponding accepted value.
+ *
+ * @param a Pointer to the acceptor structure.
+ * @param iid Instance ID for which the accepted value is requested.
+ * @param out Pointer to the paxos_accepted structure to store the accepted value.
+ * @return 1 if the accepted value was found and successfully retrieved, 0 otherwise.
+ */
+int acceptor_receive_repeat(struct acceptor* a, iid_t iid, paxos_accepted* out)
 {
 	memset(out, 0, sizeof(paxos_accepted));
 	if (storage_tx_begin(&a->store) != 0)
@@ -152,8 +174,14 @@ acceptor_receive_repeat(struct acceptor* a, iid_t iid, paxos_accepted* out)
 	return found && (out->value.paxos_value_len > 0);
 }
 
-int
-acceptor_receive_trim(struct acceptor* a, paxos_trim* trim)
+/**
+ * Receives a trim request and updates the acceptor's trim instance ID.
+ *
+ * @param a Pointer to the acceptor structure.
+ * @param trim Pointer to the paxos_trim structure containing the trim instance ID.
+ * @return 1 if the trim request was successfully processed, 0 otherwise.
+ */
+int acceptor_receive_trim(struct acceptor* a, paxos_trim* trim)
 {
 	if (trim->iid <= a->trim_iid)
 		return 0;
@@ -166,15 +194,25 @@ acceptor_receive_trim(struct acceptor* a, paxos_trim* trim)
 	return 1;
 }
 
-void
-acceptor_set_current_state(struct acceptor* a, paxos_acceptor_state* state)
+/**
+ * Sets the current state of the acceptor using the provided paxos_acceptor_state structure.
+ *
+ * @param a Pointer to the acceptor structure.
+ * @param state Pointer to the paxos_acceptor_state structure containing the state information.
+ */
+void acceptor_set_current_state(struct acceptor* a, paxos_acceptor_state* state)
 {
 	state->aid = a->id;
 	state->trim_iid = a->trim_iid;
 }
 
-static void
-paxos_accepted_to_promise(paxos_accepted* acc, paxos_message* out)
+/**
+ * Converts a paxos_accepted structure to a paxos_promise structure for response messages.
+ *
+ * @param acc Pointer to the paxos_accepted structure to be converted.
+ * @param out Pointer to the paxos_message structure to store the converted promise message.
+ */
+static void paxos_accepted_to_promise(paxos_accepted* acc, paxos_message* out)
 {
 	out->type = PAXOS_PROMISE;
 	out->u.promise = (paxos_promise) {
@@ -197,8 +235,14 @@ paxos_accepted_to_promise(paxos_accepted* acc, paxos_message* out)
 	out->u.promise.value_ballots[0] = acc->value_ballot;
 }
 
-static void
-paxos_accept_to_accepted(int id, paxos_accept* acc, paxos_message* out)
+/**
+ * Converts a paxos_accept structure to a paxos_accepted structure for accepted messages.
+ *
+ * @param id The ID of the acceptor.
+ * @param acc Pointer to the paxos_accept structure to be converted.
+ * @param out Pointer to the paxos_message structure to store the converted accepted message.
+ */
+static void paxos_accept_to_accepted(int id, paxos_accept* acc, paxos_message* out)
 {
 	char* value = NULL;
 	int value_size = acc->value.paxos_value_len;
@@ -217,8 +261,14 @@ paxos_accept_to_accepted(int id, paxos_accept* acc, paxos_message* out)
 	};
 }
 
-static void
-paxos_accepted_to_preempted(int id, paxos_accepted* acc, paxos_message* out)
+/**
+ * Converts a paxos_accepted structure to a paxos_preempted structure for preempted messages.
+ *
+ * @param id The ID of the acceptor.
+ * @param acc Pointer to the paxos_accepted structure to be converted.
+ * @param out Pointer to the paxos_message structure to store the converted preempted message.
+ */
+static void paxos_accepted_to_preempted(int id, paxos_accepted* acc, paxos_message* out)
 {
 	out->type = PAXOS_PREEMPTED;
 	out->u.preempted = (paxos_preempted) { id, acc->iid, acc->ballot };
