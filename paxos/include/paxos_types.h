@@ -75,7 +75,9 @@ struct paxos_accepted
 	uint32_t ballot;
 	uint32_t value_ballot;
 	uint32_t n_aids;
+	uint32_t* aids;
 	paxos_value value;
+	paxos_value* values;
 };
 typedef struct paxos_accepted paxos_accepted;
 

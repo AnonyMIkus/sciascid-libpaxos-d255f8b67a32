@@ -53,8 +53,7 @@ struct learner
 
 static struct instance* learner_get_instance(struct learner* l, iid_t iid);
 static struct instance* learner_get_current_instance(struct learner* l);
-static struct instance* learner_get_instance_or_create(struct learner* l, 
-	iid_t iid);
+static struct instance* learner_get_instance_or_create(struct learner* l, iid_t iid);
 static void learner_delete_instance(struct learner* l, struct instance* inst);
 static struct instance* instance_new(int acceptors);
 static void instance_free(struct instance* i, int acceptors);
@@ -64,9 +63,13 @@ static void instance_add_accept(struct instance* i, paxos_accepted* ack);
 static paxos_accepted* paxos_accepted_dup(paxos_accepted* ack);
 static void paxos_value_copy(paxos_value* dst, paxos_value* src);
 
-
-struct learner*
-learner_new(int acceptors)
+/**
+ * Creates a new learner instance.
+ *
+ * @param acceptors Number of acceptors in the Paxos system.
+ * @return Pointer to the newly created learner instance.
+ */
+struct learner* learner_new(int acceptors)
 {
 	struct learner* l;
 	l = malloc(sizeof(struct learner));
@@ -78,8 +81,12 @@ learner_new(int acceptors)
 	return l;
 }
 
-void
-learner_free(struct learner* l)
+/**
+ * Frees the memory occupied by a learner instance and its associated resources.
+ *
+ * @param l Pointer to the learner instance to be freed.
+ */
+void learner_free(struct learner* l)
 {
 	struct instance* inst;
 	kh_foreach_value(l->instances, inst, instance_free(inst, l->acceptors));
@@ -108,28 +115,33 @@ void learner_set_instance_id(struct learner* l, iid_t iid)
  */
 void learner_receive_accepted(struct learner* l, paxos_accepted* ack)
 {	
+	paxos_log_debug("entering paxos learner %lx", l);
+
 	if (l->late_start) {
 		l->late_start = 0; // Turn off late start flag
 		l->current_iid = ack->iid; // Set current instance ID
 	}
-	
+	paxos_log_debug("learner %lx stage1", l);
+
 	if (ack->iid < l->current_iid) {
 		paxos_log_debug("Dropped paxos_accepted for iid %u. Already delivered.",
 			ack->iid);
 		return;
 	}
-	
+	paxos_log_debug("learner %lx stage2", l);
+
 	struct instance* inst;
 	inst = learner_get_instance_or_create(l, ack->iid);
 	
 	// Update instance with accepted message
 	instance_update(inst, ack, l->acceptors);
-	
+	paxos_log_debug("learner %lx stage3", l);
+
 	// If instance has a quorum and is not yet closed, update highest closed instance ID
 	if (instance_has_quorum(inst, l->acceptors)
 		&& (inst->iid > l->highest_iid_closed))
 		l->highest_iid_closed = inst->iid;
-}
+	paxos_log_debug("learner %lx stage4", l);
 
 }
 /**
@@ -141,14 +153,21 @@ void learner_receive_accepted(struct learner* l, paxos_accepted* ack)
  */
 int learner_deliver_next(struct learner* l, paxos_accepted* out)
 {
+	paxos_log_debug("learner %lx deliever next stage1", l);
+
 	struct instance* inst = learner_get_current_instance(l);
 	// If no current instance or quorum is missing, cannot deliver
 	if (inst == NULL || !instance_has_quorum(inst, l->acceptors))
 		return 0;
+	// Copy the final value and mark it as delivered
+	paxos_log_debug("learner %lx deliever next stage2", l);
+
 	memcpy(out, inst->final_value, sizeof(paxos_accepted));
 	paxos_value_copy(&out->value, &inst->final_value->value);
 	learner_delete_instance(l, inst);
 	l->current_iid++;
+	paxos_log_debug("learner %lx deliever next stage3", l);
+
 	return 1;
 }
 
@@ -322,7 +341,7 @@ static int instance_has_quorum(struct instance* inst, int acceptors)
 	// If a final value has been set, the instance is considered closed
 	if (inst->final_value != NULL)
 		return 1;
-	
+
 	// Iterate through acceptor acknowledgments
 	for (i = 0; i < acceptors; i++) {
 		curr_ack = inst->acks[i];
@@ -359,11 +378,15 @@ static int instance_has_quorum(struct instance* inst, int acceptors)
  */
 static void instance_add_accept(struct instance* inst, paxos_accepted* accepted)
 {
+	paxos_log_debug("learner %lx add accept stage1",inst );
+
 	int acceptor_id = accepted->aid;
 	if (inst->acks[acceptor_id] != NULL)
 		paxos_accepted_free(inst->acks[acceptor_id]);
 	inst->acks[acceptor_id] = paxos_accepted_dup(accepted);
 	inst->last_update_ballot = accepted->ballot;
+	paxos_log_debug("learner %lx add accept stage2", inst);
+
 }
 
 /*
@@ -378,10 +401,26 @@ static void instance_add_accept(struct instance* inst, paxos_accepted* accepted)
  */
 static paxos_accepted* paxos_accepted_dup(paxos_accepted* ack)
 {
+	paxos_log_debug("learner %lx add copy stage1", ack);
+
 	paxos_accepted* copy;
 	copy = malloc(sizeof(paxos_accepted));
 	memcpy(copy, ack, sizeof(paxos_accepted));
 	paxos_value_copy(&copy->value, &ack->value);
+	paxos_log_debug("learner %lx add copy stage2", ack);
+	if (copy->n_aids > 0)
+	{
+		if (ack->aids != NULL) copy->aids = calloc(copy->n_aids, sizeof(uint32_t)); else ack->aids = NULL;
+		if (ack->values != NULL) copy->values = calloc(copy->n_aids, sizeof(paxos_value)); else ack->values = NULL;
+
+		for (int ii = 0; ii < copy->n_aids; ii++)
+		{
+			if (ack->aids != NULL)  copy->aids[ii] = ack->aids[ii];
+			if (ack->values != NULL) paxos_value_copy(&copy->values[ii], &ack->values[ii]);
+		}
+
+	}
+
 	return copy;
 }
 

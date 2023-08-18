@@ -75,6 +75,7 @@ static void evlearner_check_holes(evutil_socket_t fd, short event, void *arg)
 static void evlearner_deliver_next_closed(struct evlearner* l)
 {
 	paxos_accepted deliver;
+	memset(&deliver, 0, sizeof(paxos_accepted));
 	while (learner_deliver_next(l->state, &deliver)) {
 		l->delfun(
 			deliver.iid,
@@ -82,6 +83,7 @@ static void evlearner_deliver_next_closed(struct evlearner* l)
 			deliver.value.paxos_value_len,
 			l->delarg);
 		paxos_accepted_destroy(&deliver);
+		memset(&deliver, 0, sizeof(paxos_accepted));
 	}
 }
 

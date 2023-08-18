@@ -96,7 +96,7 @@ void acceptor_free(struct acceptor* a)
  */
 int acceptor_receive_prepare(struct acceptor* a, paxos_prepare* req, paxos_message* out)
 {
-	paxos_accepted acc; // paxos_accepted and paxos_prepare (in parameter of function) are in paxos_types.h
+	paxos_accepted acc;
 	if (req->iid <= a->trim_iid)
 		return 0;
 	memset(&acc, 0, sizeof(paxos_accepted));
@@ -257,8 +257,14 @@ static void paxos_accept_to_accepted(int id, paxos_accept* acc, paxos_message* o
 		acc->ballot,
 		acc->ballot,
 		1,
-		{value_size, value}
+		calloc(1,sizeof(uint32_t)),
+		{value_size, value},
+		calloc(1,sizeof(paxos_value))
 	};
+	out->u.accepted.aids[0] = id;
+	out->u.accepted.values[0].paxos_value_len = acc->value.paxos_value_len;
+	out->u.accepted.values[0].paxos_value_val = malloc(acc->value.paxos_value_len);
+	memcpy(out->u.accepted.values[0].paxos_value_val, acc->value.paxos_value_val, acc->value.paxos_value_len);
 }
 
 /**

@@ -206,6 +206,29 @@ static iid_t mem_storage_get_trim_instance(void* handle)
 static void paxos_accepted_copy(paxos_accepted* dst, paxos_accepted* src)
 {
 	memcpy(dst, src, sizeof(paxos_accepted));
+	if (src->n_aids > 0)
+	{
+		if (src->aids != NULL)
+		{
+			dst->aids = calloc(src->n_aids, sizeof(uint32_t));
+			for (int i = 0; i < src->n_aids; i++) dst->aids[i] = src->aids[i];
+		}
+		if (src->values != NULL)
+		{
+			dst->values = calloc(src->n_aids, sizeof(paxos_value));
+			for (int i = 0; i < src->n_aids; i++)
+			{
+				dst->values[i].paxos_value_len = src->values[i].paxos_value_len;
+				if (dst->values[i].paxos_value_len > 0)
+				{
+					dst->values[i].paxos_value_val = malloc(dst->values[i].paxos_value_len);
+					memcpy(dst->values[i].paxos_value_val, src->values[i].paxos_value_val,
+						src->values[i].paxos_value_len);
+
+				}
+			}
+		}
+	}
 	if (dst->value.paxos_value_len > 0) {
 		dst->value.paxos_value_val = malloc(src->value.paxos_value_len);
 		memcpy(dst->value.paxos_value_val, src->value.paxos_value_val,

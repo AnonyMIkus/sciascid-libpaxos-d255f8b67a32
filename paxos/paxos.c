@@ -109,7 +109,17 @@ void paxos_accept_destroy(paxos_accept* p)
 
 void paxos_accepted_destroy(paxos_accepted* p)
 {
+	paxos_log_debug("destroying %lx in accepted %lx", p->aids, p);
+	if (p->aids != NULL) free(p->aids);
+	p->aids = NULL;
 	paxos_value_destroy(&p->value);
+	if (p->values != NULL)
+	{
+		for (int ii = 0; ii < p->n_aids; ii++) paxos_value_destroy(&(p->values[ii]));
+		free(p->values);
+		p->values = NULL;
+	}
+	paxos_log_debug("finished detsrying %lx in accepted %lx", p->aids, p);
 }
 
 void paxos_client_value_destroy(paxos_client_value* p)
@@ -153,7 +163,7 @@ void paxos_log(int level, const char* format, va_list ap)
 	vsnprintf(msg+off, sizeof(msg)-off, format, ap);
 	fprintf(stdout,"%s\n", msg);
 }
-
+ 
 void paxos_log_error(const char* format, ...)
 {
 	va_list ap;

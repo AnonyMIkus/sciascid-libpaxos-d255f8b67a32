@@ -76,7 +76,7 @@ protected:
 	
 	void TestAcceptAckFromQuorum(iid_t iid, ballot_t bal, int outcome=1) {
 		for (size_t i = 0; i < quorum; ++i) {
-			paxos_accepted aa = (paxos_accepted) {i, iid, bal, bal,1,NULL,};
+			paxos_accepted aa = (paxos_accepted) {i, iid, bal, bal,1,NULL,{0, 0},NULL};
 			ASSERT_EQ(outcome, proposer_receive_accepted(p, &aa));
 		}
 	}
@@ -85,7 +85,7 @@ protected:
 		const char* value, ballot_t vbal = 0) {
 		for (size_t i = 0; i < quorum; ++i) {
 			paxos_accepted aa = (paxos_accepted)
-			{ i, iid, bal, vbal, 1, {strlen(value) + 1, (char*)value} };
+			{ i, iid, bal, vbal, 1, NULL ,{strlen(value) + 1, (char*)value} ,NULL };
 			ASSERT_EQ(1, proposer_receive_accepted(p, &aa));
 		}
 	}

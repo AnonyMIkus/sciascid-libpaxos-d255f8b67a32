@@ -239,7 +239,9 @@ void msgpack_unpack_paxos_accept(msgpack_object* o, paxos_accept* v)
  */
 void msgpack_pack_paxos_accepted(msgpack_packer* p, paxos_accepted* v)
 {
-	msgpack_pack_array(p, 7);
+	int is_aids = (v->aids != NULL && v->n_aids > 0) ? 1 : 0;
+	int is_values = (v->values != NULL && v->n_aids > 0) ? 1 : 0;
+	msgpack_pack_array(p, 8 + 2+ (is_aids?v->n_aids:0) + (is_values?v->n_aids:0));
 	msgpack_pack_int32(p, PAXOS_ACCEPTED);
 	msgpack_pack_uint32(p, v->aid);
 	msgpack_pack_uint32(p, v->iid);
@@ -247,6 +249,18 @@ void msgpack_pack_paxos_accepted(msgpack_packer* p, paxos_accepted* v)
 	msgpack_pack_uint32(p, v->value_ballot);
 	msgpack_pack_uint32(p, v->n_aids);
 	msgpack_pack_paxos_value(p, &v->value);
+	msgpack_pack_uint32(p, is_aids);
+	msgpack_pack_uint32(p, is_values);
+	if (is_aids)
+	{
+	for (int i = 0; i < v->n_aids; i++)
+		msgpack_pack_uint32(p, v->aids[i]);
+    }
+	if (is_values)
+	{
+		for (int i = 0; i < v->n_aids; i++)
+			msgpack_pack_paxos_value(p, &(v->values[i]));
+	}
 }
 
 /**
@@ -257,6 +271,8 @@ void msgpack_pack_paxos_accepted(msgpack_packer* p, paxos_accepted* v)
  */
 void msgpack_unpack_paxos_accepted(msgpack_object* o, paxos_accepted* v)
 {
+	int is_aids = 0;
+	int is_values = 0;
 	int i = 1;
 	msgpack_unpack_uint32_at(o, &v->aid, &i);
 	msgpack_unpack_uint32_at(o, &v->iid, &i);
@@ -264,6 +280,24 @@ void msgpack_unpack_paxos_accepted(msgpack_object* o, paxos_accepted* v)
 	msgpack_unpack_uint32_at(o, &v->value_ballot, &i);
 	msgpack_unpack_uint32_at(o, &v->n_aids, &i);
 	msgpack_unpack_paxos_value_at(o, &v->value, &i);
+	msgpack_unpack_uint32_at(0, &is_aids,&i);
+	msgpack_unpack_uint32_at(0, &is_values,&i);
+	if (is_aids)
+	{
+		v->aids = calloc(v->n_aids, sizeof(uint32_t));
+		for (int ii = 0; ii < v->n_aids; ii++)
+			msgpack_unpack_uint32_at(o, &v->aids[ii], &i);
+	}
+	else
+		v->values = NULL;
+	if (is_values)
+	{
+		v->values = calloc(v->n_aids, sizeof(paxos_value));
+		for (int ii = 0; ii < v->n_aids; ii++)
+			msgpack_unpack_paxos_value_at(o, &v->values[ii], &i);
+	}
+	else
+		v->values = NULL;
 }
 
 /**
