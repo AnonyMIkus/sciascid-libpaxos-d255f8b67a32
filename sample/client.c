@@ -329,6 +329,8 @@ int main(int argc, char const *argv[])
 		i++;
 	}
 
+	sleep(60);
+
 	while (i != argc) {
 		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
 			usage(argv[0]);

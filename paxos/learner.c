@@ -62,6 +62,7 @@ static int instance_has_quorum(struct instance* i, int acceptors);
 static void instance_add_accept(struct instance* i, paxos_accepted* ack);
 static paxos_accepted* paxos_accepted_dup(paxos_accepted* ack);
 static void paxos_value_copy(paxos_value* dst, paxos_value* src);
+static void paxos_accepted_deep_copy(paxos_accepted* ack, paxos_accepted* copy);
 
 /**
  * Creates a new learner instance.
@@ -162,8 +163,9 @@ int learner_deliver_next(struct learner* l, paxos_accepted* out)
 	// Copy the final value and mark it as delivered
 	paxos_log_debug("learner %lx deliever next stage2", l);
 
-	memcpy(out, inst->final_value, sizeof(paxos_accepted));
-	paxos_value_copy(&out->value, &inst->final_value->value);
+//	memcpy(out, inst->final_value, sizeof(paxos_accepted));
+//	paxos_value_copy(&out->value, &inst->final_value->value);
+	paxos_accepted_deep_copy(inst->final_value, out);
 	learner_delete_instance(l, inst);
 	l->current_iid++;
 	paxos_log_debug("learner %lx deliever next stage3", l);
@@ -279,8 +281,7 @@ static void instance_free(struct instance* inst, int acceptors)
 {
 	int i;
 	for (i = 0; i < acceptors; i++)
-		if (inst->acks[i] != NULL);
-			paxos_accepted_free(inst->acks[i]); // Free individual acks
+		if (inst->acks[i] != NULL) paxos_accepted_free(inst->acks[i]); // Free individual acks
 	free(inst->acks);	// Free the acks array
 	free(inst);			// Free the instance itself
 }
@@ -422,6 +423,27 @@ static paxos_accepted* paxos_accepted_dup(paxos_accepted* ack)
 	}
 
 	return copy;
+}
+
+static void paxos_accepted_deep_copy(paxos_accepted* ack, paxos_accepted* copy)
+{
+	paxos_log_debug("learner %lx add copy stage1", ack);
+
+	memcpy(copy, ack, sizeof(paxos_accepted));
+	paxos_value_copy(&copy->value, &ack->value);
+	paxos_log_debug("learner %lx add copy stage2", ack);
+	if (copy->n_aids > 0)
+	{
+		if (ack->aids != NULL) copy->aids = calloc(copy->n_aids, sizeof(uint32_t)); else ack->aids = NULL;
+		if (ack->values != NULL) copy->values = calloc(copy->n_aids, sizeof(paxos_value)); else ack->values = NULL;
+
+		for (int ii = 0; ii < copy->n_aids; ii++)
+		{
+			if (ack->aids != NULL)  copy->aids[ii] = ack->aids[ii];
+			if (ack->values != NULL) paxos_value_copy(&copy->values[ii], &ack->values[ii]);
+		}
+
+	}
 }
 
 /**

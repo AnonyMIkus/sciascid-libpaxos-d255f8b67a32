@@ -31,6 +31,7 @@
 #include "peers.h"
 #include "message.h"
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 #include <event2/event.h>
 
