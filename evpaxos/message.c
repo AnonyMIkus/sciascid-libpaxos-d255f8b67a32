@@ -42,6 +42,7 @@
 static int bufferevent_pack_data(void* data, const char* buf, size_t len)
 {
 	struct bufferevent* bev = (struct bufferevent*)data;
+	paxos_log_debug("%d buffer: %lx", len, buf);
 	bufferevent_write(bev, buf, len);
 	return 0;
 }
@@ -58,7 +59,38 @@ void send_paxos_message(struct bufferevent* bev, paxos_message* msg)
 	// Create a msgpack_packer associated with the provided bufferevent
 	packer = msgpack_packer_new(bev, bufferevent_pack_data);
 	// Pack the paxos_message using the msgpack_packer
-	msgpack_pack_paxos_message(packer, msg);
+	paxos_log_debug("Packing message for sending of type %d",msg->type);
+	switch (msg->type)
+	{
+	case PAXOS_PREPARE:
+		paxos_log_debug("PAXOS_PREPARE --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
+		break;
+	case PAXOS_PROMISE:
+		paxos_log_debug("PAXOS_PROMISE --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
+		break;
+	case PAXOS_ACCEPT:
+		paxos_log_debug("PAXOS_ACCEPT --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
+		break;
+	case PAXOS_ACCEPTED:
+		paxos_log_debug("PAXOS_ACCEPTED --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
+		break;
+	case PAXOS_PREEMPTED:
+		paxos_log_debug("PAXOS_PREEMPTED --> Value: %d", msg->u.client_value.value.paxos_value_len);
+		break;
+	case PAXOS_REPEAT:
+		paxos_log_debug("PAXOS_REPEAT --> Value: %d", msg->u.client_value.value.paxos_value_len);
+		break;
+	case PAXOS_TRIM:
+		paxos_log_debug("PAXOS_TRIM --> Value: %d", msg->u.client_value.value.paxos_value_len);
+		break;
+	case PAXOS_ACCEPTOR_STATE:
+		paxos_log_debug("PAXOS_ACCEPTOR_STATE --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
+		break;
+	case PAXOS_CLIENT_VALUE:
+		paxos_log_debug("PAXOS_CLIENT_VALUE --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
+		break;
+	}
+	msgpack_pack_paxos_message(packer, msg);	
 	msgpack_packer_free(packer);
 }
 
@@ -204,14 +236,20 @@ int recv_paxos_message(struct evbuffer* in, paxos_message* out)
 	size = evbuffer_get_length(in); // Get the size of data in the input buffer
 	if (size == 0) // Return 0 if buffer is empty
 		return rv;
-	
+	paxos_log_debug("Starting to unpack.");
 	msgpack_unpacked_init(&msg); // Initialize the unpacked message structure
 	buffer = (char*)evbuffer_pullup(in, size);	// Get the pointer to the data in the buffer
 	if (msgpack_unpack_next(&msg, buffer, size, &offset)) {
+		paxos_log_debug("Size: %d", size);
 		msgpack_unpack_paxos_message(&msg.data, out); // Unpack the message into the provided paxos_message structure
 		evbuffer_drain(in, offset); // Remove the consumed data from the input buffer
 		rv = 1;
 	}
+	else
+	{
+		paxos_log_debug("Unpack next not ready,size: %d", size);
+	}
+	paxos_log_debug("Finishing unpack.");
 	msgpack_unpacked_destroy(&msg);  // Clean up the unpacked message structure
 	return rv; // Return the result of the unpacking process (1 for success, 0 for failure)
 }

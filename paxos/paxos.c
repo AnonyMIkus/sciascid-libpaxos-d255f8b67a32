@@ -162,6 +162,7 @@ void paxos_log(int level, const char* format, va_list ap)
 	off = strftime(msg, sizeof(msg), "%d %b %H:%M:%S. ", localtime(&tv.tv_sec));
 	vsnprintf(msg+off, sizeof(msg)-off, format, ap);
 	fprintf(stdout,"%s\n", msg);
+	fflush(stdout);
 }
  
 void paxos_log_error(const char* format, ...)

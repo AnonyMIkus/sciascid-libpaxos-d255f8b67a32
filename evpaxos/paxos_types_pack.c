@@ -492,6 +492,7 @@ void msgpack_pack_paxos_message(msgpack_packer* p, paxos_message* v)
 void msgpack_unpack_paxos_message(msgpack_object* o, paxos_message* v)
 {
 	v->type = MSGPACK_OBJECT_AT(o,0).u64;
+	paxos_log_debug("Got paxos message of type %d", v->type);
 	switch (v->type) {
 	case PAXOS_PREPARE:
 		msgpack_unpack_paxos_prepare(o, &v->u.prepare);
@@ -521,4 +522,5 @@ void msgpack_unpack_paxos_message(msgpack_object* o, paxos_message* v)
 		msgpack_unpack_paxos_client_value(o, &v->u.client_value);
 		break;
 	}
+	paxos_log_debug("Decoded paxos message of type %d", v->type);
 }
