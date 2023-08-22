@@ -370,6 +370,8 @@ static void on_read(struct bufferevent* bev, void* arg)
 {
 	paxos_message msg;
 	struct peer* p = (struct peer*)arg;
+	paxos_log_debug("read event for peer with id %ld port %ld ip %lx ", p->id, p->addr.sin_port,p->addr.sin_addr.s_addr);
+
 	struct evbuffer* in = bufferevent_get_input(bev);
 	while (recv_paxos_message(in, &msg)) {
 		dispatch_message(p, &msg);
@@ -389,6 +391,8 @@ static void on_read(struct bufferevent* bev, void* arg)
  */
 static void on_peer_event(struct bufferevent* bev, short ev, void* arg)
 {
+	paxos_log_debug("peer event");
+
 	struct peer* p = (struct peer*)arg;
 
 	if (ev & BEV_EVENT_CONNECTED) {

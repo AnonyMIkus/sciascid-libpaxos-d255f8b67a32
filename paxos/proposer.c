@@ -82,8 +82,7 @@ static void carray_paxos_value_free(void* v);
 static int paxos_value_cmp(struct paxos_value* v1, struct paxos_value* v2);
 
 
-struct proposer*
-proposer_new(int id, int acceptors)
+struct proposer* proposer_new(int id, int acceptors)
 {
 	struct proposer *p;
 	p = malloc(sizeof(struct proposer));
@@ -97,8 +96,7 @@ proposer_new(int id, int acceptors)
 	return p;
 }
 
-void
-proposer_free(struct proposer* p)
+void proposer_free(struct proposer* p)
 {
 	struct instance* inst;
 	kh_foreach_value(p->prepare_instances, inst, instance_free(inst));
@@ -110,22 +108,19 @@ proposer_free(struct proposer* p)
 	free(p);
 }
 
-void
-proposer_propose(struct proposer* p, const char* value, size_t size)
+void proposer_propose(struct proposer* p, const char* value, size_t size)
 {
 	paxos_value* v;
 	v = paxos_value_new(value, size);
 	carray_push_back(p->values, v);
 }
 
-int
-proposer_prepared_count(struct proposer* p)
+int proposer_prepared_count(struct proposer* p)
 {
 	return kh_size(p->prepare_instances);
 }
 
-void
-proposer_set_instance_id(struct proposer* p, iid_t iid)
+void proposer_set_instance_id(struct proposer* p, iid_t iid)
 {
 	if (iid > p->next_prepare_iid) {
 		p->next_prepare_iid = iid;
@@ -135,8 +130,7 @@ proposer_set_instance_id(struct proposer* p, iid_t iid)
 	}
 }
 
-void
-proposer_prepare(struct proposer* p, paxos_prepare* out)
+void proposer_prepare(struct proposer* p, paxos_prepare* out)
 {
 	int rv;
 	iid_t iid = ++(p->next_prepare_iid);
@@ -148,8 +142,7 @@ proposer_prepare(struct proposer* p, paxos_prepare* out)
 	*out = (paxos_prepare) {inst->iid, inst->ballot};
 }
 
-int
-proposer_receive_promise(struct proposer* p, paxos_promise* ack,
+int proposer_receive_promise(struct proposer* p, paxos_promise* ack,
 	paxos_prepare* out)
 {
 	int rc = 0;
@@ -198,13 +191,10 @@ proposer_receive_promise(struct proposer* p, paxos_promise* ack,
 				paxos_log_debug("Value in promise ignored");
 		}
 	}
-
 	return rc;
-
 }
 
-int
-proposer_accept(struct proposer* p, paxos_accept* out)
+int proposer_accept(struct proposer* p, paxos_accept* out)
 {
 	khiter_t k;
 	struct instance* inst = NULL;
@@ -238,8 +228,7 @@ proposer_accept(struct proposer* p, paxos_accept* out)
 	return 1;
 }
 
-int
-proposer_receive_accepted(struct proposer* p, paxos_accepted* ack)
+int proposer_receive_accepted(struct proposer* p, paxos_accepted* ack)
 {
 	khiter_t k = kh_get_instance(p->accept_instances, ack->iid);
 	
@@ -275,8 +264,7 @@ proposer_receive_accepted(struct proposer* p, paxos_accepted* ack)
 	}
 }
 
-int
-proposer_receive_preempted(struct proposer* p, paxos_preempted* ack,
+int proposer_receive_preempted(struct proposer* p, paxos_preempted* ack,
 	paxos_prepare* out)
 {
 	khiter_t k = kh_get_instance(p->accept_instances, ack->iid);
@@ -301,8 +289,7 @@ proposer_receive_preempted(struct proposer* p, paxos_preempted* ack,
 	}
 }
 
-void
-proposer_receive_acceptor_state(struct proposer* p, paxos_acceptor_state* state)
+void proposer_receive_acceptor_state(struct proposer* p, paxos_acceptor_state* state)
 {
 	if (p->max_trim_iid < state->trim_iid) {
 		p->max_trim_iid = state->trim_iid;
@@ -310,8 +297,7 @@ proposer_receive_acceptor_state(struct proposer* p, paxos_acceptor_state* state)
 	}
 }
 
-struct timeout_iterator*
-proposer_timeout_iterator(struct proposer* p)
+struct timeout_iterator* proposer_timeout_iterator(struct proposer* p)
 {
 	struct timeout_iterator* iter;
 	iter = malloc(sizeof(struct timeout_iterator));
@@ -322,8 +308,7 @@ proposer_timeout_iterator(struct proposer* p)
 	return iter;
 }
 
-static struct instance*
-next_timedout(khash_t(instance)* h, khiter_t* k, struct timeval* t)
+static struct instance* next_timedout(khash_t(instance)* h, khiter_t* k, struct timeval* t)
 {
 	for (; *k != kh_end(h); ++(*k)) {
 		if (!kh_exist(h, *k))
@@ -337,8 +322,7 @@ next_timedout(khash_t(instance)* h, khiter_t* k, struct timeval* t)
 	return NULL;
 }
 
-int
-timeout_iterator_prepare(struct timeout_iterator* iter, paxos_prepare* out)
+int timeout_iterator_prepare(struct timeout_iterator* iter, paxos_prepare* out)
 {
 	struct instance* inst;
 	struct proposer* p = iter->proposer;
@@ -350,8 +334,7 @@ timeout_iterator_prepare(struct timeout_iterator* iter, paxos_prepare* out)
 	return 1;
 }
 
-int
-timeout_iterator_accept(struct timeout_iterator* iter, paxos_accept* out)
+int timeout_iterator_accept(struct timeout_iterator* iter, paxos_accept* out)
 {
 	struct instance* inst;
 	struct proposer* p = iter->proposer;
@@ -363,14 +346,12 @@ timeout_iterator_accept(struct timeout_iterator* iter, paxos_accept* out)
 	return 1;
 }
 
-void
-timeout_iterator_free(struct timeout_iterator* iter)
+void timeout_iterator_free(struct timeout_iterator* iter)
 {
 	free(iter);
 }
 
-static ballot_t
-proposer_next_ballot(struct proposer* p, ballot_t b)
+static ballot_t proposer_next_ballot(struct proposer* p, ballot_t b)
 {
 	if (b > 0)
 		return MAX_N_OF_PROPOSERS + b;
@@ -378,8 +359,7 @@ proposer_next_ballot(struct proposer* p, ballot_t b)
 		return MAX_N_OF_PROPOSERS + p->id;
 }
 
-static void
-proposer_preempt(struct proposer* p, struct instance* inst, paxos_prepare* out)
+static void proposer_preempt(struct proposer* p, struct instance* inst, paxos_prepare* out)
 {
 	inst->ballot = proposer_next_ballot(p, inst->ballot);
 	inst->value_ballot = 0;
@@ -389,8 +369,7 @@ proposer_preempt(struct proposer* p, struct instance* inst, paxos_prepare* out)
 	gettimeofday(&inst->created_at, NULL);
 }
 
-static void
-proposer_move_instance(khash_t(instance)* f, khash_t(instance)* t,
+static void proposer_move_instance(khash_t(instance)* f, khash_t(instance)* t,
 	struct instance* inst)
 {
 	int rv;
@@ -404,8 +383,7 @@ proposer_move_instance(khash_t(instance)* f, khash_t(instance)* t,
 	quorum_clear(&inst->quorum);
 }
 
-static void
-proposer_trim_instances(struct proposer* p, khash_t(instance)* h, iid_t iid)
+static void proposer_trim_instances(struct proposer* p, khash_t(instance)* h, iid_t iid)
 {
 	khiter_t k;
 	for (k = kh_begin(h); k != kh_end(h); ++k) {
@@ -423,8 +401,7 @@ proposer_trim_instances(struct proposer* p, khash_t(instance)* h, iid_t iid)
 	}
 }
 
-static struct instance*
-instance_new(iid_t iid, ballot_t ballot, int acceptors)
+static struct instance* instance_new(iid_t iid, ballot_t ballot, int acceptors)
 {
 	struct instance* inst;
 	inst = malloc(sizeof(struct instance));
@@ -439,8 +416,7 @@ instance_new(iid_t iid, ballot_t ballot, int acceptors)
 	return inst;
 }
 
-static void
-instance_free(struct instance* inst)
+static void instance_free(struct instance* inst)
 {
 	quorum_destroy(&inst->quorum);
 	if (instance_has_value(inst))
@@ -450,27 +426,23 @@ instance_free(struct instance* inst)
 	free(inst);
 }
 
-static int
-instance_has_value(struct instance* inst)
+static int instance_has_value(struct instance* inst)
 {
 	return inst->value != NULL;
 }
 
-static int
-instance_has_promised_value(struct instance* inst)
+static int instance_has_promised_value(struct instance* inst)
 {
 	return inst->promised_value != NULL;
 }
 
-static int
-instance_has_timedout(struct instance* inst, struct timeval* now)
+static int instance_has_timedout(struct instance* inst, struct timeval* now)
 {
 	int diff = now->tv_sec - inst->created_at.tv_sec;
 	return diff >= paxos_config.proposer_timeout;
 }
 
-static void
-instance_to_accept(struct instance* inst, paxos_accept* accept)
+static void instance_to_accept(struct instance* inst, paxos_accept* accept)
 {
 	paxos_value* v = inst->value;
 	if (instance_has_promised_value(inst))
@@ -483,16 +455,14 @@ instance_to_accept(struct instance* inst, paxos_accept* accept)
 	};
 }
 
-static int
-paxos_value_cmp(struct paxos_value* v1, struct paxos_value* v2)
+static int paxos_value_cmp(struct paxos_value* v1, struct paxos_value* v2)
 {
 	if (v1->paxos_value_len != v2->paxos_value_len)
 		return -1;
 	return memcmp(v1->paxos_value_val, v2->paxos_value_val, v1->paxos_value_len);
 }
 
-static void
-carray_paxos_value_free(void* v)
+static void carray_paxos_value_free(void* v)
 {
 	paxos_value_free(v);
 }
