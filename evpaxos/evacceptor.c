@@ -69,11 +69,13 @@ static void peer_send_paxos_message(struct peer* p, void* arg)
 static void evacceptor_handle_prepare(struct peer* p, paxos_message* msg, void* arg)
 {
 	paxos_message out;
+	paxos_log_debug("EVACCEPTOR --> Message Info: %s", msg->msg_info);
 	paxos_prepare* prepare = &msg->u.prepare;
 	struct evacceptor* a = (struct evacceptor*)arg;
 	paxos_log_debug("Handle prepare for iid %d ballot %d",
 		prepare->iid, prepare->ballot);
 	if (acceptor_receive_prepare(a->state, prepare, &out) != 0) {
+		paxos_log_debug("%s", out.msg_info);
 		send_paxos_message(peer_get_buffer(p), &out);
 		paxos_message_destroy(&out);
 	}
@@ -94,6 +96,7 @@ static void evacceptor_handle_accept(struct peer* p, paxos_message* msg, void* a
 {	
 	paxos_message out;
 	paxos_accept* accept = &msg->u.accept;
+	paxos_log_debug("%s", &msg->msg_info);
 	struct evacceptor* a = (struct evacceptor*)arg;
 	paxos_log_debug("Handle accept for iid %d bal %d", 
 		accept->iid, accept->ballot);
@@ -103,6 +106,7 @@ static void evacceptor_handle_accept(struct peer* p, paxos_message* msg, void* a
 		} else if (out.type == PAXOS_PREEMPTED) {
 			send_paxos_message(peer_get_buffer(p), &out);
 		}
+		paxos_log_debug("%s", out.msg_info);
 		paxos_message_destroy(&out);
 	}
 }

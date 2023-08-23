@@ -75,13 +75,13 @@ void send_paxos_message(struct bufferevent* bev, paxos_message* msg)
 		paxos_log_debug("PAXOS_ACCEPTED --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
 		break;
 	case PAXOS_PREEMPTED:
-		paxos_log_debug("PAXOS_PREEMPTED --> Value: %d", msg->u.client_value.value.paxos_value_len);
+		paxos_log_debug("PAXOS_PREEMPTED --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
 		break;
 	case PAXOS_REPEAT:
-		paxos_log_debug("PAXOS_REPEAT --> Value: %d", msg->u.client_value.value.paxos_value_len);
+		paxos_log_debug("PAXOS_REPEAT --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
 		break;
 	case PAXOS_TRIM:
-		paxos_log_debug("PAXOS_TRIM --> Value: %d", msg->u.client_value.value.paxos_value_len);
+		paxos_log_debug("PAXOS_TRIM --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
 		break;
 	case PAXOS_ACCEPTOR_STATE:
 		paxos_log_debug("PAXOS_ACCEPTOR_STATE --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
@@ -103,6 +103,7 @@ void send_paxos_message(struct bufferevent* bev, paxos_message* msg)
 void send_paxos_prepare(struct bufferevent* bev, paxos_prepare* p)
 {
 	paxos_message msg = {
+		.msg_info = "PREPARE for disaster.",
 		.type = PAXOS_PREPARE,
 		.u.prepare = *p };
 	send_paxos_message(bev, &msg);
@@ -118,6 +119,7 @@ void send_paxos_prepare(struct bufferevent* bev, paxos_prepare* p)
 void send_paxos_promise(struct bufferevent* bev, paxos_promise* p)
 {
 	paxos_message msg = {
+		.msg_info = "I give a PROMISE",
 		.type = PAXOS_PROMISE,
 		.u.promise = *p };
 	send_paxos_message(bev, &msg);
@@ -133,6 +135,7 @@ void send_paxos_promise(struct bufferevent* bev, paxos_promise* p)
 void send_paxos_accept(struct bufferevent* bev, paxos_accept* p)
 {
 	paxos_message msg = {
+		.msg_info = "ACCEPT sent",
 		.type = PAXOS_ACCEPT,
 		.u.accept = *p };
 	send_paxos_message(bev, &msg);
@@ -148,6 +151,7 @@ void send_paxos_accept(struct bufferevent* bev, paxos_accept* p)
 void send_paxos_accepted(struct bufferevent* bev, paxos_accepted* p)
 {	
 	paxos_message msg = {
+		.msg_info = "ACCEPTED in the message",
 		.type = PAXOS_ACCEPTED,
 		.u.accepted = *p };
 	send_paxos_message(bev, &msg);
@@ -164,6 +168,7 @@ void send_paxos_accepted(struct bufferevent* bev, paxos_accepted* p)
 void send_paxos_preempted(struct bufferevent* bev, paxos_preempted* p)
 {
 	paxos_message msg = {
+		.msg_info = "It happened: PREEMPTED",
 		.type = PAXOS_PREEMPTED,
 		.u.preempted = *p };
 	send_paxos_message(bev, &msg);
@@ -179,6 +184,7 @@ void send_paxos_preempted(struct bufferevent* bev, paxos_preempted* p)
 void send_paxos_repeat(struct bufferevent* bev, paxos_repeat* p)
 {
 	paxos_message msg = {
+		.msg_info = "Message has to REPEAT",
 		.type = PAXOS_REPEAT,
 		.u.repeat = *p };
 	send_paxos_message(bev, &msg);
@@ -195,6 +201,7 @@ void send_paxos_repeat(struct bufferevent* bev, paxos_repeat* p)
 void send_paxos_trim(struct bufferevent* bev, paxos_trim* t)
 {
 	paxos_message msg = {
+		.msg_info = "TRIM Request",
 		.type = PAXOS_TRIM,
 		.u.trim = *t };
 	send_paxos_message(bev, &msg);
@@ -211,6 +218,7 @@ void send_paxos_trim(struct bufferevent* bev, paxos_trim* t)
 void paxos_submit(struct bufferevent* bev, char* data, int size)
 {
 	paxos_message msg = {
+		.msg_info = strcat(strcat(strcat("Client Value: ", data), " with length "), size),
 		.type = PAXOS_CLIENT_VALUE,
 		.u.client_value.value.paxos_value_len = size,
 		.u.client_value.value.paxos_value_val = data };
