@@ -221,7 +221,7 @@ void paxos_submit(struct bufferevent* bev, char* data, int size)
 		.type = PAXOS_CLIENT_VALUE,
 		.u.client_value.value.paxos_value_len = size,
 		.u.client_value.value.paxos_value_val = data };
-	memcpy(&(out->msg_info[0]), "AAtP", 4);
+	memcpy(&(msg.msg_info[0]), "AAtP", 4);
 	send_paxos_message(bev, &msg);
 }
 
@@ -248,6 +248,13 @@ int recv_paxos_message(struct evbuffer* in, paxos_message* out)
 	msgpack_unpacked_init(&msg); // Initialize the unpacked message structure
 	buffer = (char*)evbuffer_pullup(in, size);	// Get the pointer to the data in the buffer
 	if (msgpack_unpack_next(&msg, buffer, size, &offset)) {
+		paxos_log_debug("%ld", size);
+		if (size > 256)
+		{
+			for (int i = 0; i < 128; i++) paxos_log_debug("offset %d value %x", i, buffer[i]);
+		}
+
+
 		paxos_log_debug("Size: %d", size);
 		msgpack_unpack_paxos_message(&msg.data, out); // Unpack the message into the provided paxos_message structure
 		evbuffer_drain(in, offset); // Remove the consumed data from the input buffer

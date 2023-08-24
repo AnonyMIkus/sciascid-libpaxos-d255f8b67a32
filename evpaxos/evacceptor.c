@@ -69,13 +69,12 @@ static void peer_send_paxos_message(struct peer* p, void* arg)
 static void evacceptor_handle_prepare(struct peer* p, paxos_message* msg, void* arg)
 {
 	paxos_message out;
-	paxos_log_debug("EVACCEPTOR --> Message Info: %x %x %x %x ",msg->msg_info[0], msg->msg_info[1], msg->msg_info[2], msg->msg_info[3]);
+	paxos_log_debug("EVACCEPTOR --> Message Info: %x %x %x %x ", msg->msg_info[0], msg->msg_info[1], msg->msg_info[2], msg->msg_info[3]);
 	paxos_prepare* prepare = &msg->u.prepare;
 	struct evacceptor* a = (struct evacceptor*)arg;
-	paxos_log_debug("Handle prepare for iid %d ballot %d",
-		prepare->iid, prepare->ballot);
+	paxos_log_debug("Handle prepare for iid %d ballot %d", prepare->iid, prepare->ballot);
 	if (acceptor_receive_prepare(a->state, prepare, &out) != 0) {
-		paxos_log_debug("%s", out.msg_info);
+		paxos_log_debug("EVACCEPTOR --> Sending Message Info: %x %x %x %x ", msg->msg_info[0], msg->msg_info[1], msg->msg_info[2], msg->msg_info[3]);
 		send_paxos_message(peer_get_buffer(p), &out);
 		paxos_message_destroy(&out);
 	}
@@ -96,7 +95,7 @@ static void evacceptor_handle_accept(struct peer* p, paxos_message* msg, void* a
 {	
 	paxos_message out;
 	paxos_accept* accept = &msg->u.accept;
-	paxos_log_debug("%s", &msg->msg_info);
+	paxos_log_debug("EVACCEPTOR --> (Handle Accept) accept Message Info : %x %x %x %x", msg->msg_info[0], msg->msg_info[1], msg->msg_info[2], msg->msg_info[3]);
 	struct evacceptor* a = (struct evacceptor*)arg;
 	paxos_log_debug("Handle accept for iid %d bal %d", 
 		accept->iid, accept->ballot);
@@ -106,7 +105,7 @@ static void evacceptor_handle_accept(struct peer* p, paxos_message* msg, void* a
 		} else if (out.type == PAXOS_PREEMPTED) {
 			send_paxos_message(peer_get_buffer(p), &out);
 		}
-		paxos_log_debug("EVACCEPTOR --> %s", out.msg_info);
+		paxos_log_debug("EVACCEPTOR --> (Handle Accept) out Message Info: %x %x %x %x", out.msg_info[0], out.msg_info[1], out.msg_info[2], out.msg_info[3]);
 		paxos_message_destroy(&out);
 	}
 }
@@ -125,6 +124,7 @@ static void evacceptor_handle_repeat(struct peer* p, paxos_message* msg, void* a
 	paxos_accepted accepted;
 	paxos_repeat* repeat = &msg->u.repeat;
 	struct evacceptor* a = (struct evacceptor*)arg;
+	paxos_log_debug("EVACCEPTOR --> (Handle Repeat) repeat Message Info: %x %x %x %x", msg->msg_info[0], msg->msg_info[1], msg->msg_info[2], msg->msg_info[3]);
 	paxos_log_debug("Handle repeat for iids %d-%d", repeat->from, repeat->to);
 	for (iid = repeat->from; iid <= repeat->to; ++iid) {
 		if (acceptor_receive_repeat(a->state, iid, &accepted)) {
@@ -160,6 +160,7 @@ static void send_acceptor_state(int fd, short ev, void* arg)
 {
 	struct evacceptor* a = (struct evacceptor*)arg;
 	paxos_message msg = {.type = PAXOS_ACCEPTOR_STATE};
+	paxos_log_debug("EVACCEPTOR --> (Send State) Message Info: %x %x %x %x", msg.msg_info[0], msg.msg_info[1], msg.msg_info[2], msg.msg_info[3]);
 	acceptor_set_current_state(a->state, &msg.u.state);
 	peers_foreach_client(a->peers, peer_send_paxos_message, &msg);
 	event_add(a->timer_ev, &a->timer_tv);
@@ -197,7 +198,7 @@ struct evacceptor* evacceptor_init_internal(int id, struct evpaxos_config* c, st
 	// Create an event timer for sending the acceptor state periodically
 	acceptor->timer_ev = evtimer_new(base, send_acceptor_state, acceptor);
 	// Set the timer interval to 1 second
-	acceptor->timer_tv = (struct timeval){1, 0};
+	acceptor->timer_tv = (struct timeval){2, 0};
 	// Add the timer event to the event loop
 	event_add(acceptor->timer_ev, &acceptor->timer_tv);
 

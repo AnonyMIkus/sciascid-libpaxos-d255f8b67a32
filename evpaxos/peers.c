@@ -37,6 +37,9 @@
 #include <event2/listener.h>
 #include <netinet/tcp.h>
 
+#include <stdlib.h>
+#include <stdio.h>
+
 struct peer
 {
 	int id;
@@ -373,6 +376,8 @@ static void on_read(struct bufferevent* bev, void* arg)
 	paxos_log_debug("read event for peer with id %ld port %ld ip %lx ", p->id, p->addr.sin_port,p->addr.sin_addr.s_addr);
 
 	struct evbuffer* in = bufferevent_get_input(bev);
+	fflush(stdout);
+	bev_opt_defer_callbacks
 	while (recv_paxos_message(in, &msg)) {
 		dispatch_message(p, &msg);
 		paxos_message_destroy(&msg);
