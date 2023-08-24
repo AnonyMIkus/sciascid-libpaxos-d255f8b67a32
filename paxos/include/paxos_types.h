@@ -132,7 +132,7 @@ typedef enum paxos_message_type paxos_message_type;
 struct paxos_message
 {
 	paxos_message_type type;
-	char* msg_info;
+	char msg_info[4];
 	union
 	{
 		paxos_prepare prepare;

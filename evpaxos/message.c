@@ -218,10 +218,10 @@ void send_paxos_trim(struct bufferevent* bev, paxos_trim* t)
 void paxos_submit(struct bufferevent* bev, char* data, int size)
 {
 	paxos_message msg = {
-		.msg_info = strcat(strcat(strcat("Client Value: ", data), " with length "), size),
 		.type = PAXOS_CLIENT_VALUE,
 		.u.client_value.value.paxos_value_len = size,
 		.u.client_value.value.paxos_value_val = data };
+	memcpy(&(out->msg_info[0]), "AAtP", 4);
 	send_paxos_message(bev, &msg);
 }
 

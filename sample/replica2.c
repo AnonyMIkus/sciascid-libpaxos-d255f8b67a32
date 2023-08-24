@@ -136,7 +136,7 @@ main(int argc, char const* argv[])
 		i++;
 	}
 
-
+	sleep(60);
 
 	struct evpaxos_config* cfg;
 	cfg = evpaxos_config_read(config);

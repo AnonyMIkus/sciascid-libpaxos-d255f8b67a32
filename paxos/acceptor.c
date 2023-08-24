@@ -214,6 +214,7 @@ void acceptor_set_current_state(struct acceptor* a, paxos_acceptor_state* state)
  */
 static void paxos_accepted_to_promise(paxos_accepted* acc, paxos_message* out)
 {
+	memcpy(&(out->msg_info[0]), "AAtP", 4);
 	out->type = PAXOS_PROMISE;
 	out->u.promise = (paxos_promise) {
 		acc->aid,
@@ -250,6 +251,7 @@ static void paxos_accept_to_accepted(int id, paxos_accept* acc, paxos_message* o
 		value = malloc(value_size);
 		memcpy(value, acc->value.paxos_value_val, value_size);
 	}
+	memcpy(&(out->msg_info[0]), "AAtA", 4);
 	out->type = PAXOS_ACCEPTED;
 	out->u.accepted = (paxos_accepted) {
 		id,
