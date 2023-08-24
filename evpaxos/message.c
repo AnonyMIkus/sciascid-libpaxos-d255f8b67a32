@@ -172,6 +172,7 @@ void send_paxos_preempted(struct bufferevent* bev, paxos_preempted* p)
 		.type = PAXOS_PREEMPTED,
 		.u.preempted = *p };
 	send_paxos_message(bev, &msg);
+	bev_opt_defer_callback();
 	paxos_log_debug("Send preempted for inst %d ballot %d", p->iid, p->ballot);
 }
 

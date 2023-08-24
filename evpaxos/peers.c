@@ -162,6 +162,7 @@ static void peers_connect(struct peers* p, int id, struct sockaddr_in* addr)
 
 	struct peer* peer = p->peers[p->peers_count];
 	bufferevent_setcb(peer->bev, on_read, NULL, on_peer_event, peer);
+	bufferevent_options(BEV_OPT_DEFER_CALLBACKS);
 	peer->reconnect_ev = evtimer_new(p->base, on_connection_timeout, peer);
 	connect_peer(peer);
 
