@@ -47,7 +47,7 @@ connect_to_proposer(struct test_client* c, const char* config, int proposer_id)
 	struct bufferevent* bev;
 	struct evpaxos_config* conf = evpaxos_config_read(config);
 	struct sockaddr_in addr = evpaxos_proposer_address(conf, proposer_id);
-	bev = bufferevent_socket_new(c->base, -1, BEV_OPT_CLOSE_ON_FREE);
+	bev = bufferevent_socket_new(c->base, -1, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
 	bufferevent_setcb(bev, NULL, NULL, on_connect, c);
 	bufferevent_enable(bev, EV_WRITE);
 	bufferevent_socket_connect(bev, (struct sockaddr*)&addr, sizeof(addr));

@@ -135,9 +135,9 @@ void send_paxos_promise(struct bufferevent* bev, paxos_promise* p)
 void send_paxos_accept(struct bufferevent* bev, paxos_accept* p)
 {
 	paxos_message msg = {
-		.msg_info = "ACCEPT sent",
 		.type = PAXOS_ACCEPT,
 		.u.accept = *p };
+	memcpy(&(msg.msg_info[0]), "ACET", 4);
 	send_paxos_message(bev, &msg);
 	paxos_log_debug("Send accept for iid %d ballot %d", p->iid, p->ballot);
 }
@@ -151,9 +151,9 @@ void send_paxos_accept(struct bufferevent* bev, paxos_accept* p)
 void send_paxos_accepted(struct bufferevent* bev, paxos_accepted* p)
 {	
 	paxos_message msg = {
-		.msg_info = "ACCEPTED in the message",
 		.type = PAXOS_ACCEPTED,
 		.u.accepted = *p };
+	memcpy(&(msg.msg_info[0]), "ACEP", 4);
 	send_paxos_message(bev, &msg);
 	paxos_log_debug("Send accepted for inst %d ballot %d", p->iid, p->ballot);
 }
@@ -168,11 +168,11 @@ void send_paxos_accepted(struct bufferevent* bev, paxos_accepted* p)
 void send_paxos_preempted(struct bufferevent* bev, paxos_preempted* p)
 {
 	paxos_message msg = {
-		.msg_info = "It happened: PREEMPTED",
 		.type = PAXOS_PREEMPTED,
 		.u.preempted = *p };
+	memcpy(&(msg.msg_info[0]), "", 4);
 	send_paxos_message(bev, &msg);
-	bev_opt_defer_callback();
+	//bev_opt_defer_callback();
 	paxos_log_debug("Send preempted for inst %d ballot %d", p->iid, p->ballot);
 }
 
@@ -185,9 +185,9 @@ void send_paxos_preempted(struct bufferevent* bev, paxos_preempted* p)
 void send_paxos_repeat(struct bufferevent* bev, paxos_repeat* p)
 {
 	paxos_message msg = {
-		.msg_info = "Message has to REPEAT",
 		.type = PAXOS_REPEAT,
 		.u.repeat = *p };
+	memcpy(&(msg.msg_info[0]), "PRPT", 4);
 	send_paxos_message(bev, &msg);
 	paxos_log_debug("Send repeat for inst %d-%d", p->from, p->to);
 }
@@ -202,9 +202,9 @@ void send_paxos_repeat(struct bufferevent* bev, paxos_repeat* p)
 void send_paxos_trim(struct bufferevent* bev, paxos_trim* t)
 {
 	paxos_message msg = {
-		.msg_info = "TRIM Request",
 		.type = PAXOS_TRIM,
 		.u.trim = *t };
+	memcpy(&(msg.msg_info[0]), "TRIM", 4);
 	send_paxos_message(bev, &msg);
 	paxos_log_debug("Send trim for inst %d", t->iid);
 }

@@ -162,7 +162,6 @@ static void peers_connect(struct peers* p, int id, struct sockaddr_in* addr)
 
 	struct peer* peer = p->peers[p->peers_count];
 	bufferevent_setcb(peer->bev, on_read, NULL, on_peer_event, peer);
-	bufferevent_options(BEV_OPT_DEFER_CALLBACKS);
 	peer->reconnect_ev = evtimer_new(p->base, on_connection_timeout, peer);
 	connect_peer(peer);
 
@@ -378,7 +377,8 @@ static void on_read(struct bufferevent* bev, void* arg)
 
 	struct evbuffer* in = bufferevent_get_input(bev);
 	fflush(stdout);
-	bev_opt_defer_callbacks
+	//bev_opt_defer_callbacks;
+	//bufferevent_options(BEV_OPT_DEFER_CALLBACKS);
 	while (recv_paxos_message(in, &msg)) {
 		dispatch_message(p, &msg);
 		paxos_message_destroy(&msg);
@@ -413,7 +413,8 @@ static void on_peer_event(struct bufferevent* bev, short ev, void* arg)
 			inet_ntoa(p->addr.sin_addr), ntohs(p->addr.sin_port));
 		base = bufferevent_get_base(p->bev);
 		bufferevent_free(p->bev);
-		p->bev = bufferevent_socket_new(base, -1, BEV_OPT_CLOSE_ON_FREE);
+		//p->bev = bufferevent_socket_new(base, -1, BEV_OPT_CLOSE_ON_FREE);
+		p->bev = bufferevent_socket_new(base, -1, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
 		bufferevent_setcb(p->bev, on_read, NULL, on_peer_event, p);
 		event_add(p->reconnect_ev, &reconnect_timeout);
 		p->status = ev;
@@ -555,7 +556,7 @@ static struct peer* make_peer(struct peers* peers, int id, struct sockaddr_in* a
 	struct peer* p = malloc(sizeof(struct peer));
 	p->id = id;
 	p->addr = *addr;
-	p->bev = bufferevent_socket_new(peers->base, -1, BEV_OPT_CLOSE_ON_FREE);
+	p->bev = bufferevent_socket_new(peers->base, -1, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
 	p->peers = peers;
 	p->reconnect_ev = NULL;
 	p->status = BEV_EVENT_EOF;
