@@ -80,8 +80,7 @@ static void on_peer_event(struct bufferevent* bev, short ev, void* arg);
 static void on_client_event(struct bufferevent* bev, short events, void* arg);
 static void on_connection_timeout(int fd, short ev, void* arg);
 static void on_listener_error(struct evconnlistener* l, void* arg);
-static void on_accept(struct evconnlistener* l, evutil_socket_t fd,
-	struct sockaddr* addr, int socklen, void* arg);
+static void on_accept(struct evconnlistener* l, evutil_socket_t fd, struct sockaddr* addr, int socklen, void* arg);
 static void socket_set_nodelay(int fd);
 
 /**
@@ -288,7 +287,8 @@ int peers_listen(struct peers* p, int port)
 	struct sockaddr_in addr;
 	unsigned flags = LEV_OPT_CLOSE_ON_EXEC
 		| LEV_OPT_CLOSE_ON_FREE
-		| LEV_OPT_REUSEABLE;
+		| LEV_OPT_REUSEABLE
+	    | LEV_OPT_THREADSAFE;
 
 	/* listen on the given port at address 0.0.0.0 */
 	memset(&addr, 0, sizeof(struct sockaddr_in));
@@ -373,6 +373,10 @@ static void on_read(struct bufferevent* bev, void* arg)
 {
 	paxos_message msg;
 	struct peer* p = (struct peer*)arg;
+	pthread_mutex_t* pgs = getPGS(p->peers->config);
+	paxos_log_debug("mutex ptr on read %lx", (unsigned long)pgs);
+	if (pgs != NULL)  pthread_mutex_lock(pgs);
+
 	paxos_log_debug("read event for peer with id %ld port %ld ip %lx ", p->id, p->addr.sin_port,p->addr.sin_addr.s_addr);
 
 	struct evbuffer* in = bufferevent_get_input(bev);
@@ -383,6 +387,7 @@ static void on_read(struct bufferevent* bev, void* arg)
 		dispatch_message(p, &msg);
 		paxos_message_destroy(&msg);
 	}
+	if (pgs != NULL)  pthread_mutex_unlock(pgs);
 }
 
 /**
@@ -400,6 +405,9 @@ static void on_peer_event(struct bufferevent* bev, short ev, void* arg)
 	paxos_log_debug("peer event");
 
 	struct peer* p = (struct peer*)arg;
+	pthread_mutex_t* pgs = getPGS(p->peers->config);
+	paxos_log_debug("mutex ptr on read %lx", (unsigned long)pgs);
+	if (pgs != NULL) pthread_mutex_lock(pgs);
 
 	if (ev & BEV_EVENT_CONNECTED) {
 		paxos_log_info("Connected to %s:%d",
@@ -422,6 +430,7 @@ static void on_peer_event(struct bufferevent* bev, short ev, void* arg)
 	else {
 		paxos_log_error("Event %d not handled", ev);
 	}
+	if (pgs != NULL) pthread_mutex_unlock(pgs);
 }
 
 
@@ -437,6 +446,9 @@ static void on_peer_event(struct bufferevent* bev, short ev, void* arg)
 static void on_client_event(struct bufferevent* bev, short ev, void* arg)
 {
 	struct peer* p = (struct peer*)arg;
+	pthread_mutex_t* pgs = getPGS(p->peers->config);
+	paxos_log_debug("mutex ptr on read %lx", (unsigned long)pgs);
+	if (pgs != NULL) pthread_mutex_lock(pgs);
 	if (ev & BEV_EVENT_EOF || ev & BEV_EVENT_ERROR) {
 		int i;
 		struct peer** clients = p->peers->clients;
@@ -452,6 +464,7 @@ static void on_client_event(struct bufferevent* bev, short ev, void* arg)
 	else {
 		paxos_log_error("Event %d not handled", ev);
 	}
+	if (pgs != NULL) pthread_mutex_unlock(pgs);
 }
 
 /**
@@ -479,11 +492,17 @@ static void on_connection_timeout(int fd, short ev, void* arg)
  */
 static void on_listener_error(struct evconnlistener* l, void* arg)
 {
+	struct peers* peers = arg;
+	pthread_mutex_t* pgs = getPGS(peers->config);
+	if (pgs != NULL) pthread_mutex_lock(pgs);
+
 	int err = EVUTIL_SOCKET_ERROR();
 	struct event_base* base = evconnlistener_get_base(l);
 	paxos_log_error("Listener error %d: %s. Shutting down event loop.", err,
 		evutil_socket_error_to_string(err));
 	event_base_loopexit(base, NULL);
+
+	if (pgs != NULL) pthread_mutex_unlock(pgs);
 }
 
 /**
@@ -502,7 +521,9 @@ static void on_accept(struct evconnlistener* l, evutil_socket_t fd,
 {
 	struct peer* peer;
 	struct peers* peers = arg;
-
+	pthread_mutex_t* pgs = getPGS(peers->config);
+	paxos_log_debug("mutex ptr on read %lx", (unsigned long)pgs);
+	if(pgs!=NULL) pthread_mutex_lock(pgs);
 	peers->clients = realloc(peers->clients,
 		sizeof(struct peer*) * (peers->clients_count + 1));
 	peers->clients[peers->clients_count] =
@@ -514,11 +535,14 @@ static void on_accept(struct evconnlistener* l, evutil_socket_t fd,
 	bufferevent_enable(peer->bev, EV_READ | EV_WRITE);
 	socket_set_nodelay(fd);
 
+	evbuffer_expand(bufferevent_get_input(peer->bev), 1024 * 1024);
+
 	paxos_log_info("Accepted connection from %s:%d",
 		inet_ntoa(((struct sockaddr_in*)addr)->sin_addr),
 		ntohs(((struct sockaddr_in*)addr)->sin_port));
 
 	peers->clients_count++;
+	if (pgs != NULL) pthread_mutex_unlock(pgs);
 }
 
 /**
@@ -535,6 +559,7 @@ static void connect_peer(struct peer* p)
 	bufferevent_socket_connect(p->bev,
 		(struct sockaddr*)&p->addr, sizeof(p->addr));
 	socket_set_nodelay(bufferevent_getfd(p->bev));
+	evbuffer_expand(bufferevent_get_input(p->bev), 1024 * 1024);
 	paxos_log_info("Connect to %s:%d",
 		inet_ntoa(p->addr.sin_addr), ntohs(p->addr.sin_port));
 }

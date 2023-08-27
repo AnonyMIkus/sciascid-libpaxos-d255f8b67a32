@@ -103,9 +103,9 @@ void send_paxos_message(struct bufferevent* bev, paxos_message* msg)
 void send_paxos_prepare(struct bufferevent* bev, paxos_prepare* p)
 {
 	paxos_message msg = {
-		.msg_info = "PREPARE for disaster.",
 		.type = PAXOS_PREPARE,
 		.u.prepare = *p };
+	memcpy(&(msg.msg_info[0]), "PREP", 4);
 	send_paxos_message(bev, &msg);
 	paxos_log_debug("Send prepare for iid %d ballot %d", p->iid, p->ballot);
 }
@@ -119,9 +119,9 @@ void send_paxos_prepare(struct bufferevent* bev, paxos_prepare* p)
 void send_paxos_promise(struct bufferevent* bev, paxos_promise* p)
 {
 	paxos_message msg = {
-		.msg_info = "I give a PROMISE",
 		.type = PAXOS_PROMISE,
 		.u.promise = *p };
+	memcpy(&(msg.msg_info[0]), "PROM", 4);
 	send_paxos_message(bev, &msg);
 	paxos_log_debug("Send promise for iid %d ballot %d", p->iid, p->ballots[0]);
 }
@@ -137,7 +137,7 @@ void send_paxos_accept(struct bufferevent* bev, paxos_accept* p)
 	paxos_message msg = {
 		.type = PAXOS_ACCEPT,
 		.u.accept = *p };
-	memcpy(&(msg.msg_info[0]), "ACET", 4);
+	memcpy(&(msg.msg_info[0]), "ACCN", 4);
 	send_paxos_message(bev, &msg);
 	paxos_log_debug("Send accept for iid %d ballot %d", p->iid, p->ballot);
 }
@@ -153,7 +153,7 @@ void send_paxos_accepted(struct bufferevent* bev, paxos_accepted* p)
 	paxos_message msg = {
 		.type = PAXOS_ACCEPTED,
 		.u.accepted = *p };
-	memcpy(&(msg.msg_info[0]), "ACEP", 4);
+	memcpy(&(msg.msg_info[0]), "ACCY", 4);
 	send_paxos_message(bev, &msg);
 	paxos_log_debug("Send accepted for inst %d ballot %d", p->iid, p->ballot);
 }
@@ -170,7 +170,7 @@ void send_paxos_preempted(struct bufferevent* bev, paxos_preempted* p)
 	paxos_message msg = {
 		.type = PAXOS_PREEMPTED,
 		.u.preempted = *p };
-	memcpy(&(msg.msg_info[0]), "", 4);
+	memcpy(&(msg.msg_info[0]), "PREE", 4);
 	send_paxos_message(bev, &msg);
 	//bev_opt_defer_callback();
 	paxos_log_debug("Send preempted for inst %d ballot %d", p->iid, p->ballot);
@@ -187,7 +187,7 @@ void send_paxos_repeat(struct bufferevent* bev, paxos_repeat* p)
 	paxos_message msg = {
 		.type = PAXOS_REPEAT,
 		.u.repeat = *p };
-	memcpy(&(msg.msg_info[0]), "PRPT", 4);
+	memcpy(&(msg.msg_info[0]), "REPT", 4);
 	send_paxos_message(bev, &msg);
 	paxos_log_debug("Send repeat for inst %d-%d", p->from, p->to);
 }
@@ -222,7 +222,7 @@ void paxos_submit(struct bufferevent* bev, char* data, int size)
 		.type = PAXOS_CLIENT_VALUE,
 		.u.client_value.value.paxos_value_len = size,
 		.u.client_value.value.paxos_value_val = data };
-	memcpy(&(msg.msg_info[0]), "AAtP", 4);
+	memcpy(&(msg.msg_info[0]), "VALU", 4);
 	send_paxos_message(bev, &msg);
 }
 
@@ -248,22 +248,29 @@ int recv_paxos_message(struct evbuffer* in, paxos_message* out)
 	paxos_log_debug("Starting to unpack.");
 	msgpack_unpacked_init(&msg); // Initialize the unpacked message structure
 	buffer = (char*)evbuffer_pullup(in, size);	// Get the pointer to the data in the buffer
-	if (msgpack_unpack_next(&msg, buffer, size, &offset)) {
+	int rc = msgpack_unpack_next(&msg, buffer, size, &offset);
+	paxos_log_debug("is message ready %ld", rc);
+	if (rc>0) {
 		paxos_log_debug("%ld", size);
-		if (size > 256)
+	/*	if (size > 256)
 		{
 			for (int i = 0; i < 128; i++) paxos_log_debug("offset %d value %x", i, buffer[i]);
 		}
-
+		*/
 
 		paxos_log_debug("Size: %d", size);
 		msgpack_unpack_paxos_message(&msg.data, out); // Unpack the message into the provided paxos_message structure
 		evbuffer_drain(in, offset); // Remove the consumed data from the input buffer
 		rv = 1;
 	}
+	else if (rc==0)
+	{
+		paxos_log_debug("No data in buffer");
+	}
 	else
 	{
-		paxos_log_debug("Unpack next not ready,size: %d", size);
+		paxos_log_debug("Error in the buffer,rc= %d size: %d, draining buffer" ,rc, size);
+		evbuffer_drain(in, 1024 * 1024);
 	}
 	paxos_log_debug("Finishing unpack.");
 	msgpack_unpacked_destroy(&msg);  // Clean up the unpacked message structure

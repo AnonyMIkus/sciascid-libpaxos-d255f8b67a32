@@ -48,6 +48,7 @@ struct evpaxos_config
 	int acceptors_count;
 	struct address proposers[MAX_N_OF_PROPOSERS];
 	struct address acceptors[MAX_N_OF_PROPOSERS];
+	pthread_mutex_t* pgs;
 };
 
 enum option_type
@@ -134,6 +135,7 @@ struct evpaxos_config* evpaxos_config_read(const char* path)
 		goto failure;
 	}
 	memset(c, 0, sizeof(struct evpaxos_config));
+	c->pgs = NULL;
 	while (fgets(line, sizeof(line), f) != NULL) {
 		if (line[0] != '#' && line[0] != '\n' && line[0] != '\r') {
 			if (parse_line(c, line) == 0) {
@@ -548,11 +550,23 @@ static void address_copy(struct address* src, struct address* dst)
  * @return A sockaddr_in structure containing the converted address information.
  */
 static struct sockaddr_in address_to_sockaddr(struct address* a)
-{
+{	
 	struct sockaddr_in addr;
 	memset(&addr, 0, sizeof(struct sockaddr_in));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(a->port);
 	addr.sin_addr.s_addr = inet_addr(a->addr);
 	return addr;
+}
+
+pthread_mutex_t* getPGS(struct evpaxos_config* c)
+{
+	return c->pgs;
+}
+
+//pthread_
+void setPGS(struct evpaxos_config* c, pthread_mutex_t* pgs)
+{
+	c->pgs = pgs;
+	//return null;
 }

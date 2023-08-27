@@ -62,7 +62,7 @@ deliver(unsigned iid, char* value, size_t size, void* arg)
 }
 
 static void
-start_replica(int nnodes, struct evpaxos_config* cfg, pthread_t* ref, pthread_mutex_t* syncs, void** cs)
+start_replica(int nnodes, struct evpaxos_config* cfg, pthread_t* ref, pthread_mutex_t* syncs, void** cs, pthread_mutex_t* pgs)
 {
 	struct event* sig;
 	struct event_base* base;
@@ -71,10 +71,12 @@ start_replica(int nnodes, struct evpaxos_config* cfg, pthread_t* ref, pthread_mu
 	if (verbose)
 		cb = deliver;
 	base = event_base_new();
+	setPGS(cfg, pgs);
+
 	int i = 0;
 	while (i < nnodes)
 	{
-		p = evpaxos_alloc_parms(i, cfg, cb, NULL, base, &(syncs[i]));
+		p = evpaxos_alloc_parms(i, cfg, cb, NULL, base, &(syncs[i]),pgs);
 		cs[i] = (void*)p;
 
 		evpaxos_replica_init_thread(&(ref[i]), &(syncs[i]), p);
@@ -150,11 +152,18 @@ main(int argc, char const* argv[])
 	pthread_t* threads = calloc(nnodes,sizeof(pthread_t));
 	pthread_mutex_t* syncs = calloc(nnodes, sizeof(pthread_mutex_t));
 	void** cs = calloc(nnodes, sizeof(void*));
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_t gs = PTHREAD_MUTEX_INITIALIZER;
+	pthread_mutex_init(&gs, &attr);
+	pthread_mutexattr_destroy(&attr);
 
-	start_replica(nnodes, cfg, threads, syncs, cs);
+	start_replica(nnodes, cfg, threads, syncs, cs, &gs);
 
 	free(threads);
 	free(syncs);
+	pthread_mutex_destroy(&gs);
 
 	return 0;
 }

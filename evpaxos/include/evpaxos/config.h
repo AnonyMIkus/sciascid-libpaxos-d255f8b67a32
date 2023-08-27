@@ -43,6 +43,9 @@ int evpaxos_acceptor_count(struct evpaxos_config* config);
 struct sockaddr_in evpaxos_acceptor_address(struct evpaxos_config* c, int i);
 int evpaxos_acceptor_listen_port(struct evpaxos_config* c, int i);
 
+pthread_mutex_t* getPGS(struct evpaxos_config* c );
+void setPGS(struct evpaxos_config* c,pthread_mutex_t* pgs);
+
 #ifdef __cplusplus
 }
 #endif

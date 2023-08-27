@@ -50,10 +50,11 @@ struct evpaxos_parms
 	struct event_base* base;
 	pthread_t* thread;
 	pthread_mutex_t* tsync;
+	pthread_mutex_t* pgs;
 };
 
 struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config,
-	deliver_function cb, void* arg, struct event_base* base, pthread_mutex_t* isync)
+	deliver_function cb, void* arg, struct event_base* base, pthread_mutex_t* isync, pthread_mutex_t* pgs)
 {
 	struct evpaxos_parms* p = malloc(sizeof(struct evpaxos_parms));
 	if (!p) return p;
@@ -63,6 +64,7 @@ struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config,
 	p->arg = arg;
 	p->base = base;
 	p->tsync = isync;
+	p->pgs = pgs;
 	return p;
 }
 
