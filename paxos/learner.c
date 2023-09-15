@@ -310,7 +310,7 @@ static void instance_update(struct instance* inst, paxos_accepted* accepted, int
 	}
 	
 	// Check if the received ballot is newer than the previous ballot
-	paxos_accepted* prev_accepted = inst->acks[accepted->aid];
+	paxos_accepted* prev_accepted = inst->acks[accepted->aids[0]];
 	if (prev_accepted != NULL && prev_accepted->ballot >= accepted->ballot) {
 		paxos_log_debug("Dropped paxos_accepted for iid %u."
 			"Previous ballot is newer or equal.", accepted->iid);
@@ -381,7 +381,7 @@ static void instance_add_accept(struct instance* inst, paxos_accepted* accepted)
 {
 	paxos_log_debug("learner %lx add accept stage1",inst );
 
-	int acceptor_id = accepted->aid;
+	int acceptor_id = accepted->aids[0];
 	if (inst->acks[acceptor_id] != NULL)
 		paxos_accepted_free(inst->acks[acceptor_id]);
 	inst->acks[acceptor_id] = paxos_accepted_dup(accepted);
@@ -407,7 +407,7 @@ static paxos_accepted* paxos_accepted_dup(paxos_accepted* ack)
 	paxos_accepted* copy;
 	copy = malloc(sizeof(paxos_accepted));
 	memcpy(copy, ack, sizeof(paxos_accepted));
-	paxos_value_copy(&copy->value, &ack->value);
+//	paxos_value_copy(&copy->value, &ack->value);
 	paxos_log_debug("learner %lx add copy stage2", ack);
 	if (copy->n_aids > 0)
 	{
@@ -430,7 +430,7 @@ static void paxos_accepted_deep_copy(paxos_accepted* ack, paxos_accepted* copy)
 	paxos_log_debug("learner %lx add copy stage1", ack);
 
 	memcpy(copy, ack, sizeof(paxos_accepted));
-	paxos_value_copy(&copy->value, &ack->value);
+//	paxos_value_copy(&copy->value, &ack->value);
 	paxos_log_debug("learner %lx add copy stage2", ack);
 	if (copy->n_aids > 0)
 	{

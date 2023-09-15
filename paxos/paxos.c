@@ -112,7 +112,7 @@ void paxos_accepted_destroy(paxos_accepted* p)
 	paxos_log_debug("destroying %lx in accepted", p);
 	if (p->aids != NULL) free(p->aids);
 	p->aids = NULL;
-	paxos_value_destroy(&p->value);
+	paxos_value_destroy(&p->value_0);
 	if (p->values != NULL)
 	{
 		for (int ii = 0; ii < p->n_aids; ii++) if(p->values[ii].paxos_value_len>0) paxos_value_destroy(&(p->values[ii]));

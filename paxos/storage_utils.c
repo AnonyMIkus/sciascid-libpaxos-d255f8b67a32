@@ -33,13 +33,24 @@
 char*
 paxos_accepted_to_buffer(paxos_accepted* acc)
 {
-	size_t len = acc->value.paxos_value_len;
+	size_t len = acc->n_aids * sizeof(uint32_t);
+	for (int i = 0; i < acc->n_aids; i++)
+	{
+		len += acc->values[i].paxos_value_len+sizeof(uint32_t);
+	}
+
 	char* buffer = malloc(sizeof(paxos_accepted) + len);
 	if (buffer == NULL)
 		return NULL;
 	memcpy(buffer, acc, sizeof(paxos_accepted));
-	if (len > 0) {
-		memcpy(&buffer[sizeof(paxos_accepted)], acc->value.paxos_value_val, len);
+	memcpy(buffer+sizeof(paxos_accepted), &(acc->aids[0]), acc->n_aids * sizeof(uint32_t));
+	char* p = buffer + sizeof(paxos_accepted) + acc->n_aids * sizeof(uint32_t);
+	for(int i=0;i< acc->n_aids;i++)
+	{ 
+		memcpy(p, &(acc->values[i].paxos_value_len), sizeof(uint32_t));
+		p += sizeof(uint32_t);
+		memcpy(p, &(acc->values[i].paxos_value_val), acc->values[i].paxos_value_len);
+		p += acc->values[i].paxos_value_len;
 	}
 	return buffer;
 }
@@ -48,10 +59,21 @@ void
 paxos_accepted_from_buffer(char* buffer, paxos_accepted* out)
 {
 	memcpy(out, buffer, sizeof(paxos_accepted));
-	if (out->value.paxos_value_len > 0) {
-		out->value.paxos_value_val = malloc(out->value.paxos_value_len);
-		memcpy(out->value.paxos_value_val,
-			&buffer[sizeof(paxos_accepted)],
-			out->value.paxos_value_len);
+	if (out->n_aids > 0)
+	{
+		out->aids = malloc(out->n_aids * sizeof(uint32_t));
+		memcpy(out->aids, buffer + sizeof(paxos_accepted), out->n_aids * sizeof(uint32_t));
+		out->values = malloc(out->n_aids * sizeof(paxos_value));
+		char* p = buffer + sizeof(paxos_accepted) + out->n_aids * sizeof(uint32_t);
+		for (int i = 0; i < out->n_aids; i++)
+		{
+			memcpy(&(out->values[i].paxos_value_len), p, sizeof(uint32_t));
+			p += sizeof(uint32_t);
+			out->values[i].paxos_value_val = malloc(out->values[i].paxos_value_len);
+			memcpy(out->values[i].paxos_value_val, p, out->values[i].paxos_value_len);
+			p += out->values[i].paxos_value_len;
+
+		}
+
 	}
 }

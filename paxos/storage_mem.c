@@ -229,11 +229,13 @@ static void paxos_accepted_copy(paxos_accepted* dst, paxos_accepted* src)
 			}
 		}
 	}
-	if (dst->value.paxos_value_len > 0) {
+	dst->value_0.paxos_value_len = 0;
+	dst->value_0.paxos_value_val = NULL;
+	/*if (dst->value.paxos_value_len > 0) {
 		dst->value.paxos_value_val = malloc(src->value.paxos_value_len);
 		memcpy(dst->value.paxos_value_val, src->value.paxos_value_val,
 			src->value.paxos_value_len);
-	}
+	}*/
 }
 
 

@@ -64,9 +64,9 @@ protected:
 	ASSERT_EQ(msg.u.accepted.iid, id);                       \
 	ASSERT_EQ(msg.u.accepted.ballot, bal);                   \
 	ASSERT_EQ(msg.u.accepted.value_ballot, vbal);            \
-	ASSERT_EQ(msg.u.accepted.value.paxos_value_len,          \
+	ASSERT_EQ(msg.u.accepted.values[0].paxos_value_len,          \
 		val == NULL ? 0 : strlen(val)+1);					 \
-	ASSERT_STREQ(msg.u.accepted.value.paxos_value_val, val); \
+	ASSERT_STREQ(msg.u.accepted.values[0].paxos_value_val, val); \
 }
 
 #define CHECK_PREEMPTED(msg, id, bal) {     \

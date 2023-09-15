@@ -65,7 +65,7 @@ TEST_F(LearnerTest, Learn) {
 	ASSERT_EQ(deliver.iid, 1);
 	ASSERT_EQ(deliver.ballot, 101);
 	ASSERT_EQ(deliver.value_ballot, 101);
-	ASSERT_EQ(NULL, deliver.value.paxos_value_val);
+	ASSERT_EQ(NULL, deliver.values[0].paxos_value_val);
 	paxos_accepted_destroy(&deliver);
 }
 

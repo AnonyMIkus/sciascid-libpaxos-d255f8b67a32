@@ -80,8 +80,8 @@ static void evlearner_deliver_next_closed(struct evlearner* l)
 	while (learner_deliver_next(l->state, &deliver)) {
 		l->delfun(
 			deliver.iid,
-			deliver.value.paxos_value_val,
-			deliver.value.paxos_value_len,
+			deliver.values[0].paxos_value_val,
+			deliver.values[0].paxos_value_len,
 			l->delarg);
 		paxos_accepted_destroy(&deliver);
 		memset(&deliver, 0, sizeof(paxos_accepted));

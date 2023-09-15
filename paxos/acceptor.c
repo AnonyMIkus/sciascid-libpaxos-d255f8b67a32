@@ -105,10 +105,13 @@ int acceptor_receive_prepare(struct acceptor* a, paxos_prepare* req, paxos_messa
 	int found = storage_get_record(&a->store, req->iid, &acc); // Search for exisiting entry. One entry is enough.
 	if (!found || acc.ballot <= req->ballot) {
 		paxos_log_debug("Preparing iid: %u, ballot: %u", req->iid, req->ballot);
-		acc.aid = a->id;
+		acc.aid_0 = a->id;
 		acc.iid = req->iid;
 		acc.ballot = req->ballot;
 		acc.n_aids = 1;
+		acc.aids = calloc(1, sizeof(uint32_t));
+		acc.aids[0] = a->id;
+		acc.values = NULL;
 		if (storage_put_record(&a->store, &acc) != 0) {
 			storage_tx_abort(&a->store);
 			return 0;
@@ -171,7 +174,7 @@ int acceptor_receive_repeat(struct acceptor* a, iid_t iid, paxos_accepted* out)
 	int found = storage_get_record(&a->store, iid, out);
 	if (storage_tx_commit(&a->store) != 0)
 		return 0;
-	return found && (out->value.paxos_value_len > 0);
+	return found && (out->values[0].paxos_value_len > 0);
 }
 
 /**
@@ -216,22 +219,26 @@ static void paxos_accepted_to_promise(paxos_accepted* acc, paxos_message* out)
 {
 	memcpy(&(out->msg_info[0]), "AAtP", 4);
 	out->type = PAXOS_PROMISE;
-	out->u.promise = (paxos_promise) {
-		acc->aid,
+	out->u.promise = (paxos_promise){
+		acc->aid_0,
 		acc->iid,
 		acc->ballot,
 		acc->value_ballot,
 		1,
 		calloc(1,sizeof(uint32_t)),
-		{acc->value.paxos_value_len, acc->value.paxos_value_val},
+		{0, NULL},
 		calloc(1,sizeof(paxos_value)),
 		calloc(1,sizeof(uint32_t)),
 		calloc(1,sizeof(uint32_t))
 	};
-	out->u.promise.aids[0] = acc->aid;
-	out->u.promise.values[0].paxos_value_len = acc->value.paxos_value_len;
-	out->u.promise.values[0].paxos_value_val = malloc(acc->value.paxos_value_len);
-	memcpy(out->u.promise.values[0].paxos_value_val, acc->value.paxos_value_val, acc->value.paxos_value_len);
+
+	out->u.promise.aids[0] = acc->aid_0;
+	if (acc->values != NULL)
+	{
+		out->u.promise.values[0].paxos_value_len = acc->values[0].paxos_value_len;
+		out->u.promise.values[0].paxos_value_val = malloc(acc->values[0].paxos_value_len);
+		memcpy(out->u.promise.values[0].paxos_value_val, acc->values[0].paxos_value_val, acc->values[0].paxos_value_len);
+	};
 	out->u.promise.ballots[0] = acc->ballot;
 	out->u.promise.value_ballots[0] = acc->value_ballot;
 }
