@@ -116,13 +116,13 @@ void learner_set_instance_id(struct learner* l, iid_t iid)
  */
 void learner_receive_accepted(struct learner* l, paxos_accepted* ack)
 {	
-	paxos_log_debug("entering paxos learner %lx", l);
+	//paxos_log_debug("entering paxos learner %lx", l);
 
 	if (l->late_start) {
 		l->late_start = 0; // Turn off late start flag
 		l->current_iid = ack->iid; // Set current instance ID
 	}
-	paxos_log_debug("learner %lx stage1", l);
+	paxos_log_debug("learner %lx stage 1", l);
 
 	if (ack->iid < l->current_iid) {
 		paxos_log_debug("Dropped paxos_accepted for iid %u. Already delivered.",
@@ -299,7 +299,7 @@ static void instance_update(struct instance* inst, paxos_accepted* accepted, int
 	if (inst->iid == 0) {
 		paxos_log_debug("Received first message for iid: %u", accepted->iid);
 		inst->iid = accepted->iid;
-		inst->last_update_ballot = accepted->ballot;
+		inst->last_update_ballot = accepted->ballots[0];
 	}
 	
 	// If the instance is already closed, drop the message
@@ -311,7 +311,7 @@ static void instance_update(struct instance* inst, paxos_accepted* accepted, int
 	
 	// Check if the received ballot is newer than the previous ballot
 	paxos_accepted* prev_accepted = inst->acks[accepted->aids[0]];
-	if (prev_accepted != NULL && prev_accepted->ballot >= accepted->ballot) {
+	if (prev_accepted != NULL && prev_accepted->ballots[0] >= accepted->ballots[0]) {
 		paxos_log_debug("Dropped paxos_accepted for iid %u."
 			"Previous ballot is newer or equal.", accepted->iid);
 		return;
@@ -351,7 +351,7 @@ static int instance_has_quorum(struct instance* inst, int acceptors)
 		if (curr_ack == NULL) continue;
 		
 		// Count the ones "agreeing" with the last added
-		if (curr_ack->ballot == inst->last_update_ballot) {
+		if (curr_ack->ballots[0] == inst->last_update_ballot) {
 			count++;
 			a_valid_index = i;
 		}
@@ -385,7 +385,7 @@ static void instance_add_accept(struct instance* inst, paxos_accepted* accepted)
 	if (inst->acks[acceptor_id] != NULL)
 		paxos_accepted_free(inst->acks[acceptor_id]);
 	inst->acks[acceptor_id] = paxos_accepted_dup(accepted);
-	inst->last_update_ballot = accepted->ballot;
+	inst->last_update_ballot = accepted->ballots[0];
 	paxos_log_debug("learner %lx add accept stage2", inst);
 
 }
@@ -413,11 +413,15 @@ static paxos_accepted* paxos_accepted_dup(paxos_accepted* ack)
 	{
 		if (ack->aids != NULL) copy->aids = calloc(copy->n_aids, sizeof(uint32_t)); else ack->aids = NULL;
 		if (ack->values != NULL) copy->values = calloc(copy->n_aids, sizeof(paxos_value)); else ack->values = NULL;
+		if (ack->ballots != NULL) copy->ballots = calloc(copy->n_aids, sizeof(uint32_t)); else ack->ballots = NULL;
+		if (ack->value_ballots != NULL) copy->value_ballots = calloc(copy->n_aids, sizeof(uint32_t)); else ack->value_ballots = NULL;
 
 		for (int ii = 0; ii < copy->n_aids; ii++)
 		{
 			if (ack->aids != NULL)  copy->aids[ii] = ack->aids[ii];
 			if (ack->values != NULL) paxos_value_copy(&copy->values[ii], &ack->values[ii]);
+			if (ack->ballots != NULL) copy->ballots[ii]=ack->ballots[ii];
+			if (ack->value_ballots != NULL) copy->value_ballots[ii] = ack->value_ballots[ii];
 		}
 
 	}
@@ -436,11 +440,15 @@ static void paxos_accepted_deep_copy(paxos_accepted* ack, paxos_accepted* copy)
 	{
 		if (ack->aids != NULL) copy->aids = calloc(copy->n_aids, sizeof(uint32_t)); else ack->aids = NULL;
 		if (ack->values != NULL) copy->values = calloc(copy->n_aids, sizeof(paxos_value)); else ack->values = NULL;
+		if (ack->ballots != NULL) copy->ballots = calloc(copy->n_aids, sizeof(uint32_t)); else ack->ballots = NULL;
+		if (ack->value_ballots != NULL) copy->value_ballots = calloc(copy->n_aids, sizeof(uint32_t)); else ack->value_ballots = NULL;
 
 		for (int ii = 0; ii < copy->n_aids; ii++)
 		{
 			if (ack->aids != NULL)  copy->aids[ii] = ack->aids[ii];
 			if (ack->values != NULL) paxos_value_copy(&copy->values[ii], &ack->values[ii]);
+			if (ack->ballots != NULL) copy->ballots[ii] = ack->ballots[ii];
+			if (ack->value_ballots != NULL) copy->value_ballots[ii] = ack->value_ballots[ii];
 		}
 
 	}

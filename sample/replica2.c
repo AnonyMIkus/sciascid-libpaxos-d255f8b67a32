@@ -33,6 +33,7 @@
 #include <signal.h>
 #include <string.h>
 #include <pthread.h>
+#include <malloc.h>
 
 
 struct client_value
@@ -117,6 +118,8 @@ usage(const char* prog)
 int
 main(int argc, char const* argv[])
 {
+	mallopt(M_MXFAST, 0);
+//	mallopt(M_PERTURB, 0x100);
 	int i = 1;
 	const char* config = "../paxos.conf";
 

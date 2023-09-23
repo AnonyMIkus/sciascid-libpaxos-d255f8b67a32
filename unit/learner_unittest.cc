@@ -53,18 +53,18 @@ TEST_F(LearnerTest, Learn) {
 	ASSERT_FALSE(delivered);
 
 	// iid, bal, val_bal, final, size
-	a = (paxos_accepted) {1, 1, 101, 101, 0, NULL, 0, NULL};
+	a = (paxos_accepted) {1, 1, 101, 101, 0, NULL, 0, NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
 	delivered = learner_deliver_next(l, &deliver);
 	ASSERT_FALSE(delivered);
 
-	a = (paxos_accepted) {2, 1, 101, 101, 0, NULL, 0,NULL};
+	a = (paxos_accepted) {2, 1, 101, 101, 0, NULL, 0,NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
 	delivered = learner_deliver_next(l, &deliver);
 	ASSERT_TRUE(delivered);
 	ASSERT_EQ(deliver.iid, 1);
-	ASSERT_EQ(deliver.ballot, 101);
-	ASSERT_EQ(deliver.value_ballot, 101);
+	ASSERT_EQ(deliver.ballot_0, 101);
+	ASSERT_EQ(deliver.value_ballot_0, 101);
 	ASSERT_EQ(NULL, deliver.values[0].paxos_value_val);
 	paxos_accepted_destroy(&deliver);
 }
@@ -104,14 +104,14 @@ TEST_F(LearnerTest, IgnoreDuplicates) {
 	int delivered;
 	paxos_accepted a, deliver;
 
-	a =	(paxos_accepted) {1, 1, 101, 101, 0, NULL, 0 , NULL};
+	a =	(paxos_accepted) {1, 1, 101, 101, 0, NULL, 0 , NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
 	learner_receive_accepted(l, &a);
 	learner_receive_accepted(l, &a);
 	delivered = learner_deliver_next(l, &deliver);
 	ASSERT_FALSE(delivered);
 	
-	a = (paxos_accepted) {2, 1, 101, 101, 0, NULL ,0 , NULL};
+	a = (paxos_accepted) {2, 1, 101, 101, 0, NULL ,0 , NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
 	delivered = learner_deliver_next(l, &deliver);
 	ASSERT_EQ(deliver.iid, 1);
@@ -122,20 +122,20 @@ TEST_F(LearnerTest, LearnMajority) {
 	int delivered;
 	paxos_accepted a, deliver;
 
-	a =	(paxos_accepted) {0, 1, 101, 101, 0, NULL, 0, NULL};
+	a =	(paxos_accepted) {0, 1, 101, 101, 0, NULL, 0, NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
-	a = (paxos_accepted) {1, 1, 100, 100, 0, NULL, 0, NULL};
+	a = (paxos_accepted) {1, 1, 100, 100, 0, NULL, 0, NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
 	
 	delivered = learner_deliver_next(l, &deliver);
 	ASSERT_FALSE(delivered);
 
-	a = (paxos_accepted) {2, 1, 101, 101, 0, NULL, 0, NULL};
+	a = (paxos_accepted) {2, 1, 101, 101, 0, NULL, 0, NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
 	
 	delivered = learner_deliver_next(l, &deliver);
 	ASSERT_EQ(deliver.iid, 1);
-	ASSERT_EQ(deliver.ballot, 101);
+	ASSERT_EQ(deliver.ballot_0, 101);
 	paxos_accepted_destroy(&deliver);
 }
 
@@ -143,20 +143,20 @@ TEST_F(LearnerTest, IgnoreOlderBallot) {
 	int delivered;
 	paxos_accepted a, deliver;
 
-	a =	(paxos_accepted) {1, 1, 101, 101, 0, NULL, 0, NULL};
+	a =	(paxos_accepted) {1, 1, 101, 101, 0, NULL, 0, NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
-	a = (paxos_accepted) {1, 1, 201, 201, 0, NULL, 0, NULL};
+	a = (paxos_accepted) {1, 1, 201, 201, 0, NULL, 0, NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
 	
 	delivered = learner_deliver_next(l, &deliver);
 	ASSERT_FALSE(delivered);
 	
-	a = (paxos_accepted) {2, 1, 201, 201, 0, NULL,  0, NULL};
+	a = (paxos_accepted) {2, 1, 201, 201, 0, NULL,  0, NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
 	
 	delivered = learner_deliver_next(l, &deliver);
 	ASSERT_EQ(deliver.iid, 1);
-	ASSERT_EQ(deliver.ballot, 201);
+	ASSERT_EQ(deliver.ballot_0, 201);
 	paxos_accepted_destroy(&deliver);
 }
 
@@ -164,9 +164,9 @@ TEST_F(LearnerTest, NoHoles) {
 	iid_t from, to;
 	int delivered;
 	paxos_accepted a, deliver;
-	a =	(paxos_accepted) {1, 1, 101, 101, 0, NULL, 0, NULL};
+	a =	(paxos_accepted) {1, 1, 101, 101, 0, NULL, 0, NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
-	a =	(paxos_accepted) {2, 1, 101, 101, 0, NULL, 0, NULL};
+	a =	(paxos_accepted) {2, 1, 101, 101, 0, NULL, 0, NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
 	delivered = learner_deliver_next(l, &deliver);
 	ASSERT_EQ(learner_has_holes(l, &from, &to), 0);
@@ -178,16 +178,16 @@ TEST_F(LearnerTest, OneHole) {
 	paxos_accepted a, deliver;
 	iid_t from, to;
 	
-	a =	(paxos_accepted) {1, 1, 101, 101, 0, NULL, 0, NULL};
+	a =	(paxos_accepted) {1, 1, 101, 101, 0, NULL, 0, NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
-	a =	(paxos_accepted) {2, 1, 101, 101, 0, NULL, 0, NULL};
+	a =	(paxos_accepted) {2, 1, 101, 101, 0, NULL, 0, NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
 	delivered = learner_deliver_next(l, &deliver);
 	paxos_accepted_destroy(&deliver);
 	
-	a =	(paxos_accepted) {1, 3, 101, 101, 0, NULL, 0 , NULL};
+	a =	(paxos_accepted) {1, 3, 101, 101, 0, NULL, 0 , NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
-	a =	(paxos_accepted) {2, 3, 101, 101, 0, NULL, 0 , NULL};
+	a =	(paxos_accepted) {2, 3, 101, 101, 0, NULL, 0 , NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
 	delivered = learner_deliver_next(l, &deliver);
 	ASSERT_FALSE(delivered);
@@ -202,16 +202,16 @@ TEST_F(LearnerTest, ManyHoles) {
 	paxos_accepted a, deliver;
 	iid_t from, to;
 	
-	a =	(paxos_accepted) {1, 2, 101, 101, 0, NULL, 0, NULL};
+	a =	(paxos_accepted) {1, 2, 101, 101, 0, NULL, 0, NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
-	a =	(paxos_accepted) {2, 2, 101, 101, 0, NULL, 0, NULL};
+	a =	(paxos_accepted) {2, 2, 101, 101, 0, NULL, 0, NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
 	delivered = learner_deliver_next(l, &deliver);
 	ASSERT_FALSE(delivered);
 	
-	a =	(paxos_accepted) {1, 100, 101, 101, 0, NULL, 0, NULL};
+	a =	(paxos_accepted) {1, 100, 101, 101, 0, NULL, 0, NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
-	a =	(paxos_accepted) {2, 100, 101, 101, 0, NULL, 0, NULL};
+	a =	(paxos_accepted) {2, 100, 101, 101, 0, NULL, 0, NULL,NULL,NULL};
 	learner_receive_accepted(l, &a);
 	delivered = learner_deliver_next(l, &deliver);
 	ASSERT_FALSE(delivered);

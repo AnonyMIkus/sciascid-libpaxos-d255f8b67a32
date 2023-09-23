@@ -42,7 +42,11 @@
 static int bufferevent_pack_data(void* data, const char* buf, size_t len)
 {
 	struct bufferevent* bev = (struct bufferevent*)data;
-	paxos_log_debug("%d buffer: %lx", len, buf);
+	paxos_log_debug("len %d buffer: %lx", len, buf);
+	if(len == 1) 
+	{ 
+		paxos_log_debug("data written on 0 %lx", ((unsigned long) (*buf))&0xff);
+	}
 	bufferevent_write(bev, buf, len);
 	return 0;
 }
@@ -63,31 +67,31 @@ void send_paxos_message(struct bufferevent* bev, paxos_message* msg)
 	switch (msg->type)
 	{
 	case PAXOS_PREPARE:
-		paxos_log_debug("PAXOS_PREPARE --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
+		paxos_log_debug("PAXOS_PREPARE");
 		break;
 	case PAXOS_PROMISE:
-		paxos_log_debug("PAXOS_PROMISE --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
+		paxos_log_debug("PAXOS_PROMISE");
 		break;
 	case PAXOS_ACCEPT:
-		paxos_log_debug("PAXOS_ACCEPT --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
+		paxos_log_debug("PAXOS_ACCEPT");
 		break;
 	case PAXOS_ACCEPTED:
-		paxos_log_debug("PAXOS_ACCEPTED --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
+		paxos_log_debug("PAXOS_ACCEPTED");
 		break;
 	case PAXOS_PREEMPTED:
-		paxos_log_debug("PAXOS_PREEMPTED --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
+		paxos_log_debug("PAXOS_PREEMPTED");
 		break;
 	case PAXOS_REPEAT:
-		paxos_log_debug("PAXOS_REPEAT --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
+		paxos_log_debug("PAXOS_REPEAT");
 		break;
 	case PAXOS_TRIM:
-		paxos_log_debug("PAXOS_TRIM --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
+		paxos_log_debug("PAXOS_TRIM");
 		break;
 	case PAXOS_ACCEPTOR_STATE:
-		paxos_log_debug("PAXOS_ACCEPTOR_STATE --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
+		paxos_log_debug("PAXOS_ACCEPTOR_STATE");
 		break;
 	case PAXOS_CLIENT_VALUE:
-		paxos_log_debug("PAXOS_CLIENT_VALUE --> Value: %d, Data: %lx", msg->u.client_value.value.paxos_value_len, bufferevent_pack_data);
+		paxos_log_debug("PAXOS_CLIENT_VALUE");
 		break;
 	}
 	msgpack_pack_paxos_message(packer, msg);	
@@ -155,7 +159,7 @@ void send_paxos_accepted(struct bufferevent* bev, paxos_accepted* p)
 		.u.accepted = *p };
 	memcpy(&(msg.msg_info[0]), "ACCY", 4);
 	send_paxos_message(bev, &msg);
-	paxos_log_debug("Send accepted for inst %d ballot %d", p->iid, p->ballot);
+	paxos_log_debug("Send accepted for inst %d ballot %d", p->iid, p->ballots[0]);
 }
 
 
@@ -245,13 +249,12 @@ int recv_paxos_message(struct evbuffer* in, paxos_message* out)
 	size = evbuffer_get_length(in); // Get the size of data in the input buffer
 	if (size == 0) // Return 0 if buffer is empty
 		return rv;
-	paxos_log_debug("Starting to unpack.");
+	paxos_log_debug("Bytes in buffer %ld, Starting to unpack.",size);
 	msgpack_unpacked_init(&msg); // Initialize the unpacked message structure
 	buffer = (char*)evbuffer_pullup(in, size);	// Get the pointer to the data in the buffer
 	int rc = msgpack_unpack_next(&msg, buffer, size, &offset);
 	paxos_log_debug("is message ready %ld", rc);
 	if (rc>0) {
-		paxos_log_debug("%ld", size);
 	/*	if (size > 256)
 		{
 			for (int i = 0; i < 128; i++) paxos_log_debug("offset %d value %x", i, buffer[i]);
@@ -262,6 +265,7 @@ int recv_paxos_message(struct evbuffer* in, paxos_message* out)
 		msgpack_unpack_paxos_message(&msg.data, out); // Unpack the message into the provided paxos_message structure
 		evbuffer_drain(in, offset); // Remove the consumed data from the input buffer
 		rv = 1;
+
 	}
 	else if (rc==0)
 	{
@@ -270,7 +274,7 @@ int recv_paxos_message(struct evbuffer* in, paxos_message* out)
 	else
 	{
 		paxos_log_debug("Error in the buffer,rc= %d size: %d, draining buffer" ,rc, size);
-		evbuffer_drain(in, 1024 * 1024);
+		evbuffer_drain(in, 2*1024*1024);
 	}
 	paxos_log_debug("Finishing unpack.");
 	msgpack_unpacked_destroy(&msg);  // Clean up the unpacked message structure

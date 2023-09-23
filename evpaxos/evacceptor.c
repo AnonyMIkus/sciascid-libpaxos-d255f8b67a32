@@ -122,6 +122,7 @@ static void evacceptor_handle_repeat(struct peer* p, paxos_message* msg, void* a
 {
 	iid_t iid;
 	paxos_accepted accepted;
+	memset(&accepted, 0, sizeof(accepted));
 	paxos_repeat* repeat = &msg->u.repeat;
 	struct evacceptor* a = (struct evacceptor*)arg;
 	paxos_log_debug("EVACCEPTOR --> (Handle Repeat) repeat Message Info: %x %x %x %x", msg->msg_info[0], msg->msg_info[1], msg->msg_info[2], msg->msg_info[3]);

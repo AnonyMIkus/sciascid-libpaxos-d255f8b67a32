@@ -62,8 +62,8 @@ protected:
 #define CHECK_ACCEPTED(msg, id, bal, vbal, val) {            \
 	ASSERT_EQ(msg.type, PAXOS_ACCEPTED);                     \
 	ASSERT_EQ(msg.u.accepted.iid, id);                       \
-	ASSERT_EQ(msg.u.accepted.ballot, bal);                   \
-	ASSERT_EQ(msg.u.accepted.value_ballot, vbal);            \
+	ASSERT_EQ(msg.u.accepted.ballots[0], bal);                   \
+	ASSERT_EQ(msg.u.accepted.value_ballots[0], vbal);            \
 	ASSERT_EQ(msg.u.accepted.values[0].paxos_value_len,          \
 		val == NULL ? 0 : strlen(val)+1);					 \
 	ASSERT_STREQ(msg.u.accepted.values[0].paxos_value_val, val); \

@@ -39,7 +39,7 @@ paxos_accepted_to_buffer(paxos_accepted* acc)
 		len += acc->values[i].paxos_value_len+sizeof(uint32_t);
 	}
 
-	char* buffer = malloc(sizeof(paxos_accepted) + len);
+	char* buffer = malloc(sizeof(paxos_accepted) + len+sizeof(uint32_t)*acc->n_aids*2);
 	if (buffer == NULL)
 		return NULL;
 	memcpy(buffer, acc, sizeof(paxos_accepted));
@@ -52,6 +52,24 @@ paxos_accepted_to_buffer(paxos_accepted* acc)
 		memcpy(p, &(acc->values[i].paxos_value_val), acc->values[i].paxos_value_len);
 		p += acc->values[i].paxos_value_len;
 	}
+	if (acc->ballots != NULL)
+	{
+		memcpy(p, acc->ballots, sizeof(uint32_t) * acc->n_aids);
+	}
+	else
+	{
+		memset(p, 0, sizeof(uint32_t) * acc->n_aids);
+	}
+	p += sizeof(uint32_t) * acc->n_aids;
+	if (acc->value_ballots != NULL)
+	{
+		memcpy(p, acc->value_ballots, sizeof(uint32_t) * acc->n_aids);
+	}
+	else
+	{
+		memset(p, 0, sizeof(uint32_t) * acc->n_aids);
+	}
+	p += sizeof(uint32_t) * acc->n_aids;
 	return buffer;
 }
 
@@ -74,6 +92,11 @@ paxos_accepted_from_buffer(char* buffer, paxos_accepted* out)
 			p += out->values[i].paxos_value_len;
 
 		}
-
+		out->ballots = malloc(sizeof(uint32_t) * out->n_aids);
+		memcpy(out->ballots, p, sizeof(uint32_t) * out->n_aids);
+		p += sizeof(uint32_t) * out->n_aids;
+		out->value_ballots = malloc(sizeof(uint32_t) * out->n_aids);
+		memcpy(out->value_ballots, p, sizeof(uint32_t) * out->n_aids);
+		p += sizeof(uint32_t) * out->n_aids;
 	}
 }

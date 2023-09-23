@@ -51,6 +51,7 @@ void paxos_log_debug(const char* format, ...);
 */
 static void msgpack_pack_string(msgpack_packer* p, char* buffer, int len)
 {
+	//paxos_log_debug("Packing string of length %d from buffer %lx",len,buffer);
 	// Check the MessagePack version to determine the appropriate packing function
 	#if MSGPACK_VERSION_MAJOR > 0
 	msgpack_pack_bin(p, len);
@@ -92,8 +93,10 @@ static void msgpack_unpack_string_at(msgpack_object* o, char** buffer, int* len,
 	*len = MSGPACK_OBJECT_AT(o,*i).raw.size;
 	const char* obj = MSGPACK_OBJECT_AT(o,*i).raw.ptr;
 	#endif
+	//paxos_log_debug("Unpacking string of length %d, index  %d",  len, i);
 	if (*len > 0) {
-		*buffer = malloc(*len);
+		*buffer = malloc(*len+16); // add
+		memset(*buffer, 0, *len + 16);
 		memcpy(*buffer, obj, *len);
 	}
 	(*i)++;
@@ -107,7 +110,18 @@ static void msgpack_unpack_string_at(msgpack_object* o, char** buffer, int* len,
  */
 static void msgpack_pack_paxos_value(msgpack_packer* p, paxos_value* v)
 {
-	msgpack_pack_string(p, v->paxos_value_val, v->paxos_value_len);
+	if (v == NULL)
+	{
+		msgpack_pack_string(p, "", 0);
+	} else
+	if (v->paxos_value_val == NULL)
+	{
+		msgpack_pack_string(p, "", 0);
+	}
+	else
+	{
+		msgpack_pack_string(p, v->paxos_value_val, v->paxos_value_len);
+	}
 }
 
 /**
@@ -246,17 +260,18 @@ void msgpack_pack_paxos_accepted(msgpack_packer* p, paxos_accepted* v)
 
 	int is_aids = (v->aids != NULL && v->n_aids > 0) ? 1 : 0;
 	int is_values = (v->values != NULL && v->n_aids > 0) ? 1 : 0;
-	paxos_log_debug("packing accepted length  %d with n_aids  %d , is aids %d is values %d", 8 + 2 + (is_aids ? v->n_aids : 0) + (is_values ? v->n_aids : 0), v->n_aids,is_aids,is_values);
-	msgpack_pack_array(p, 8 + 2+ (is_aids?v->n_aids:0) + (is_values?v->n_aids:0));
-	msgpack_pack_int32(p, PAXOS_ACCEPTED);
-	msgpack_pack_uint32(p, v->aid_0);
-	msgpack_pack_uint32(p, v->iid);
-	msgpack_pack_uint32(p, v->ballot);
-	msgpack_pack_uint32(p, v->value_ballot);
-	msgpack_pack_uint32(p, v->n_aids);
+	//paxos_log_debug("packing accepted length  %d with n_aids  %d , is aids %d is values %d", 8 + 2 + (is_aids ? v->n_aids : 0) + (is_values ? v->n_aids : 0), v->n_aids,is_aids,is_values);
+	//paxos_log_debug("TEST-->%d", 6 + 1 + (is_aids ? v->n_aids : 0) * 3 + (is_values ? v->n_aids : 0));
+	msgpack_pack_array(p, 6 + 1 + (is_aids ? v->n_aids : 0) * 3 + (is_values ? v->n_aids : 0));  // size
+	msgpack_pack_int32(p, PAXOS_ACCEPTED);			// 1
+	msgpack_pack_uint32(p, v->aid_0);				// 2
+	msgpack_pack_uint32(p, v->iid);					// 3	
+//	msgpack_pack_uint32(p, v->ballot);
+//	msgpack_pack_uint32(p, v->value_ballot);
+	msgpack_pack_uint32(p, v->n_aids);				// 4
 	
-	msgpack_pack_uint32(p, is_aids);
-	msgpack_pack_uint32(p, is_values);
+	msgpack_pack_uint32(p, is_aids);				// 5
+	msgpack_pack_uint32(p, is_values);				// 6
 //	msgpack_pack_paxos_value(p, &v->value);
 	if (is_aids)
 	{
@@ -267,6 +282,16 @@ void msgpack_pack_paxos_accepted(msgpack_packer* p, paxos_accepted* v)
 	{
 		for (int i = 0; i < v->n_aids; i++)
 			msgpack_pack_paxos_value(p, &(v->values[i]));
+	}
+	if (is_aids)
+	{
+		for (int i = 0; i < v->n_aids; i++)
+			msgpack_pack_uint32(p, (v->ballots != NULL)?v->ballots[i]:0);
+	}
+	if (is_aids)
+	{
+		for (int i = 0; i < v->n_aids; i++)
+			msgpack_pack_uint32(p, (v->value_ballots != NULL)?v->value_ballots[i]:0);
 	}
 }
 
@@ -284,9 +309,9 @@ void msgpack_unpack_paxos_accepted(msgpack_object* o, paxos_accepted* v)
 	paxos_log_debug("unpacking accepted length  ");
 	msgpack_unpack_uint32_at(o, &v->aid_0, &i);
 	msgpack_unpack_uint32_at(o, &v->iid, &i);
-	msgpack_unpack_uint32_at(o, &v->ballot, &i);
-	msgpack_unpack_uint32_at(o, &v->value_ballot, &i);
-	paxos_log_debug("unpacking accepted with aid  %d , iid %d ballot %d", v->aid_0, v->iid, v->ballot);
+//	msgpack_unpack_uint32_at(o, &v->ballot, &i);
+//	msgpack_unpack_uint32_at(o, &v->value_ballot, &i);
+	paxos_log_debug("unpacking accepted with aid  %d , iid %d", v->aid_0, v->iid);
 	msgpack_unpack_uint32_at(o, &v->n_aids, &i);
 	msgpack_unpack_uint32_at(o, (uint32_t*) ( & is_aids), &i);
 	msgpack_unpack_uint32_at(o, (uint32_t*) ( & is_values), & i);
@@ -302,7 +327,7 @@ void msgpack_unpack_paxos_accepted(msgpack_object* o, paxos_accepted* v)
 			msgpack_unpack_uint32_at(o, &v->aids[ii], &i);
 	}
 	else
-		v->values = NULL;
+		v->aids = NULL;
 	if (is_values)
 	{
 		v->values = calloc(v->n_aids, sizeof(paxos_value));
@@ -311,6 +336,20 @@ void msgpack_unpack_paxos_accepted(msgpack_object* o, paxos_accepted* v)
 	}
 	else
 		v->values = NULL;
+
+	if (is_aids)
+	{
+		v->ballots = calloc(v->n_aids, sizeof(uint32_t));
+		for (int ii = 0; ii < v->n_aids; ii++)
+			msgpack_unpack_uint32_at(o, &v->ballots[ii], &i);
+	}
+	if (is_aids)
+	{
+		v->value_ballots = calloc(v->n_aids, sizeof(uint32_t));
+		for (int ii = 0; ii < v->n_aids; ii++)
+			msgpack_unpack_uint32_at(o, &v->value_ballots[ii], &i);
+	}
+
 }
 
 /**

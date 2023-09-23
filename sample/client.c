@@ -35,6 +35,7 @@
 #include <signal.h>
 #include <event2/event.h>
 #include <netinet/tcp.h>
+#include <malloc.h>
 
 #define MAX_VALUE_SIZE 8192
 
@@ -317,6 +318,8 @@ static void usage(const char* name)
 /// <returns>An int value that shows if main is successful.</returns>
 int main(int argc, char const *argv[])
 {
+	mallopt(M_MXFAST, 0);
+//	mallopt(M_PERTURB, 0x100);
 	int i = 1;
 	int proposer_id = 0;
 	int outstanding = 1;

@@ -97,20 +97,25 @@ void acceptor_free(struct acceptor* a)
 int acceptor_receive_prepare(struct acceptor* a, paxos_prepare* req, paxos_message* out)
 {
 	paxos_accepted acc;
+	memset(&acc, 0, sizeof(acc));
 	if (req->iid <= a->trim_iid)
 		return 0;
 	memset(&acc, 0, sizeof(paxos_accepted));
 	if (storage_tx_begin(&a->store) != 0)
 		return 0;
 	int found = storage_get_record(&a->store, req->iid, &acc); // Search for exisiting entry. One entry is enough.
-	if (!found || acc.ballot <= req->ballot) {
+	if (!found || acc.ballots[0] <= req->ballot) {
 		paxos_log_debug("Preparing iid: %u, ballot: %u", req->iid, req->ballot);
 		acc.aid_0 = a->id;
 		acc.iid = req->iid;
-		acc.ballot = req->ballot;
+		acc.ballot_0 = req->ballot;
 		acc.n_aids = 1;
 		acc.aids = calloc(1, sizeof(uint32_t));
+		acc.ballots = calloc(1, sizeof(uint32_t));
+		acc.value_ballots = calloc(1, sizeof(uint32_t));
 		acc.aids[0] = a->id;
+		acc.ballots[0] = req->ballot;
+		acc.value_ballots[0] = req->ballot;
 		acc.values = NULL;
 		if (storage_put_record(&a->store, &acc) != 0) {
 			storage_tx_abort(&a->store);
@@ -141,7 +146,7 @@ int acceptor_receive_accept(struct acceptor* a, paxos_accept* req, paxos_message
 	if (storage_tx_begin(&a->store) != 0)
 		return 0;
 	int found = storage_get_record(&a->store, req->iid, &acc);
-	if (!found || acc.ballot <= req->ballot) {
+	if (!found || acc.ballots[0] <= req->ballot) {
 		paxos_log_debug("Accepting iid: %u, ballot: %u", req->iid, req->ballot);
 		paxos_accept_to_accepted(a->id, req, out);
 		if (storage_put_record(&a->store, &(out->u.accepted)) != 0) {
@@ -222,8 +227,8 @@ static void paxos_accepted_to_promise(paxos_accepted* acc, paxos_message* out)
 	out->u.promise = (paxos_promise){
 		acc->aid_0,
 		acc->iid,
-		acc->ballot,
-		acc->value_ballot,
+		acc->ballots[0],
+		acc->value_ballots[0],
 		1,
 		calloc(1,sizeof(uint32_t)),
 		{0, NULL},
@@ -239,8 +244,8 @@ static void paxos_accepted_to_promise(paxos_accepted* acc, paxos_message* out)
 		out->u.promise.values[0].paxos_value_val = malloc(acc->values[0].paxos_value_len);
 		memcpy(out->u.promise.values[0].paxos_value_val, acc->values[0].paxos_value_val, acc->values[0].paxos_value_len);
 	};
-	out->u.promise.ballots[0] = acc->ballot;
-	out->u.promise.value_ballots[0] = acc->value_ballot;
+	out->u.promise.ballots[0] = acc->ballots[0];
+	out->u.promise.value_ballots[0] = acc->value_ballots[0];
 }
 
 /**
@@ -252,12 +257,6 @@ static void paxos_accepted_to_promise(paxos_accepted* acc, paxos_message* out)
  */
 static void paxos_accept_to_accepted(int id, paxos_accept* acc, paxos_message* out)
 {
-	char* value = NULL;
-	int value_size = acc->value.paxos_value_len;
-	if (value_size > 0) {
-		value = malloc(value_size);
-		memcpy(value, acc->value.paxos_value_val, value_size);
-	}
 	memcpy(&(out->msg_info[0]), "AAtA", 4);
 	out->type = PAXOS_ACCEPTED;
 	out->u.accepted = (paxos_accepted) {
@@ -267,13 +266,18 @@ static void paxos_accept_to_accepted(int id, paxos_accept* acc, paxos_message* o
 		acc->ballot,
 		1,
 		calloc(1,sizeof(uint32_t)),
-		{value_size, value},
-		calloc(1,sizeof(paxos_value))
+//		{value_size, value},
+		{0,NULL},
+		calloc(1,sizeof(paxos_value)),
+		calloc(1,sizeof(uint32_t)),
+		calloc(1,sizeof(uint32_t))
 	};
 	out->u.accepted.aids[0] = id;
 	out->u.accepted.values[0].paxos_value_len = acc->value.paxos_value_len;
 	out->u.accepted.values[0].paxos_value_val = malloc(acc->value.paxos_value_len);
 	memcpy(out->u.accepted.values[0].paxos_value_val, acc->value.paxos_value_val, acc->value.paxos_value_len);
+	out->u.accepted.ballots[0]=acc->ballot;
+	out->u.accepted.value_ballots[0] = acc->ballot;
 }
 
 /**
@@ -286,5 +290,5 @@ static void paxos_accept_to_accepted(int id, paxos_accept* acc, paxos_message* o
 static void paxos_accepted_to_preempted(int id, paxos_accepted* acc, paxos_message* out)
 {
 	out->type = PAXOS_PREEMPTED;
-	out->u.preempted = (paxos_preempted) { id, acc->iid, acc->ballot };
+	out->u.preempted = (paxos_preempted) { id, acc->iid, acc->ballots[0]};
 }

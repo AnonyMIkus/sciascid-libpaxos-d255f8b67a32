@@ -228,6 +228,22 @@ static void paxos_accepted_copy(paxos_accepted* dst, paxos_accepted* src)
 				}
 			}
 		}
+		if (src->ballots != NULL)
+		{
+			dst->ballots = calloc( src->n_aids, sizeof(uint32_t));
+			for (int i = 0; i < dst->n_aids; i++) { dst->ballots[i] = src->ballots[i]; }
+		}
+		if (src->value_ballots != NULL)
+		{
+			dst->value_ballots = calloc( src->n_aids, sizeof(uint32_t));
+			for (int i = 0; i < dst->n_aids; i++) { dst->value_ballots[i] = src->value_ballots[i]; }
+		}
+	}
+	else
+	{
+		dst->aids = NULL;
+		dst->ballots = NULL;
+		dst->value_ballots = NULL;
 	}
 	dst->value_0.paxos_value_len = 0;
 	dst->value_0.paxos_value_val = NULL;

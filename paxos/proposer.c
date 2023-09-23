@@ -239,7 +239,7 @@ int proposer_receive_accepted(struct proposer* p, paxos_accepted* ack)
 	
 	struct instance* inst = kh_value(p->accept_instances, k);
 	
-	if (ack->ballot == inst->ballot) {
+	if (ack->ballots[0] == inst->ballot) {
 		if (!quorum_add(&inst->quorum, ack->aids[0])) {
 			paxos_log_debug("Duplicate accept dropped from: %d, iid: %u", 
 				ack->aids[0], inst->iid);

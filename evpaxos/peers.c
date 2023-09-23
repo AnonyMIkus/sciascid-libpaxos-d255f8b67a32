@@ -372,6 +372,7 @@ static void dispatch_message(struct peer* p, paxos_message* msg)
 static void on_read(struct bufferevent* bev, void* arg)
 {
 	paxos_message msg;
+	memset(&msg, 0, sizeof(msg));
 	struct peer* p = (struct peer*)arg;
 	pthread_mutex_t* pgs = getPGS(p->peers->config);
 	paxos_log_debug("mutex ptr on read %lx", (unsigned long)pgs);
@@ -384,8 +385,10 @@ static void on_read(struct bufferevent* bev, void* arg)
 	//bev_opt_defer_callbacks;
 	//bufferevent_options(BEV_OPT_DEFER_CALLBACKS);
 	while (recv_paxos_message(in, &msg)) {
+
 		dispatch_message(p, &msg);
 		paxos_message_destroy(&msg);
+		memset(&msg, 0, sizeof(msg));
 	}
 	if (pgs != NULL)  pthread_mutex_unlock(pgs);
 }
@@ -535,7 +538,7 @@ static void on_accept(struct evconnlistener* l, evutil_socket_t fd,
 	bufferevent_enable(peer->bev, EV_READ | EV_WRITE);
 	socket_set_nodelay(fd);
 
-	evbuffer_expand(bufferevent_get_input(peer->bev), 1024 * 1024);
+	evbuffer_expand(bufferevent_get_input(peer->bev), 2*1024*1024);
 
 	paxos_log_info("Accepted connection from %s:%d",
 		inet_ntoa(((struct sockaddr_in*)addr)->sin_addr),
@@ -559,7 +562,7 @@ static void connect_peer(struct peer* p)
 	bufferevent_socket_connect(p->bev,
 		(struct sockaddr*)&p->addr, sizeof(p->addr));
 	socket_set_nodelay(bufferevent_getfd(p->bev));
-	evbuffer_expand(bufferevent_get_input(p->bev), 1024 * 1024);
+	evbuffer_expand(bufferevent_get_input(p->bev), 2*1024*1024);
 	paxos_log_info("Connect to %s:%d",
 		inet_ntoa(p->addr.sin_addr), ntohs(p->addr.sin_port));
 }
