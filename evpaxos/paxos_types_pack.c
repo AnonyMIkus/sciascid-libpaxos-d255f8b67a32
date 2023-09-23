@@ -51,7 +51,7 @@ void paxos_log_debug(const char* format, ...);
 */
 static void msgpack_pack_string(msgpack_packer* p, char* buffer, int len)
 {
-	//paxos_log_debug("Packing string of length %d from buffer %lx",len,buffer);
+	paxos_log_debug("Packing string of length %d from buffer %lx",len,buffer);
 	// Check the MessagePack version to determine the appropriate packing function
 	#if MSGPACK_VERSION_MAJOR > 0
 	msgpack_pack_bin(p, len);
@@ -93,7 +93,7 @@ static void msgpack_unpack_string_at(msgpack_object* o, char** buffer, int* len,
 	*len = MSGPACK_OBJECT_AT(o,*i).raw.size;
 	const char* obj = MSGPACK_OBJECT_AT(o,*i).raw.ptr;
 	#endif
-	//paxos_log_debug("Unpacking string of length %d, index  %d",  len, i);
+	paxos_log_debug("Unpacking string of length %d, index  %d",  len, i);
 	if (*len > 0) {
 		*buffer = malloc(*len+16); // add
 		memset(*buffer, 0, *len + 16);
@@ -260,8 +260,8 @@ void msgpack_pack_paxos_accepted(msgpack_packer* p, paxos_accepted* v)
 
 	int is_aids = (v->aids != NULL && v->n_aids > 0) ? 1 : 0;
 	int is_values = (v->values != NULL && v->n_aids > 0) ? 1 : 0;
-	//paxos_log_debug("packing accepted length  %d with n_aids  %d , is aids %d is values %d", 8 + 2 + (is_aids ? v->n_aids : 0) + (is_values ? v->n_aids : 0), v->n_aids,is_aids,is_values);
-	//paxos_log_debug("TEST-->%d", 6 + 1 + (is_aids ? v->n_aids : 0) * 3 + (is_values ? v->n_aids : 0));
+	paxos_log_debug("packing accepted length  %d with n_aids  %d , is aids %d is values %d", 8 + 2 + (is_aids ? v->n_aids : 0) + (is_values ? v->n_aids : 0), v->n_aids,is_aids,is_values);
+	paxos_log_debug("TEST-->%d", 6 + 1 + (is_aids ? v->n_aids : 0) * 3 + (is_values ? v->n_aids : 0));
 	msgpack_pack_array(p, 6 + 1 + (is_aids ? v->n_aids : 0) * 3 + (is_values ? v->n_aids : 0));  // size
 	msgpack_pack_int32(p, PAXOS_ACCEPTED);			// 1
 	msgpack_pack_uint32(p, v->aid_0);				// 2

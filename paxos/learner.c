@@ -116,7 +116,7 @@ void learner_set_instance_id(struct learner* l, iid_t iid)
  */
 void learner_receive_accepted(struct learner* l, paxos_accepted* ack)
 {	
-	//paxos_log_debug("entering paxos learner %lx", l);
+	paxos_log_debug("entering paxos learner %lx", l);
 
 	if (l->late_start) {
 		l->late_start = 0; // Turn off late start flag
