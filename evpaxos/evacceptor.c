@@ -73,6 +73,7 @@ static void evacceptor_handle_prepare(struct peer* p, paxos_message* msg, void* 
 	paxos_prepare* prepare = &msg->u.prepare;
 	struct evacceptor* a = (struct evacceptor*)arg;
 	paxos_log_debug("Handle prepare for iid %d ballot %d", prepare->iid, prepare->ballot);
+
 	if (acceptor_receive_prepare(a->state, prepare, &out) != 0) {
 		paxos_log_debug("EVACCEPTOR --> Sending Message Info: %x %x %x %x ", msg->msg_info[0], msg->msg_info[1], msg->msg_info[2], msg->msg_info[3]);
 		send_paxos_message(peer_get_buffer(p), &out);
@@ -97,14 +98,15 @@ static void evacceptor_handle_accept(struct peer* p, paxos_message* msg, void* a
 	paxos_accept* accept = &msg->u.accept;
 	paxos_log_debug("EVACCEPTOR --> (Handle Accept) accept Message Info : %x %x %x %x", msg->msg_info[0], msg->msg_info[1], msg->msg_info[2], msg->msg_info[3]);
 	struct evacceptor* a = (struct evacceptor*)arg;
-	paxos_log_debug("Handle accept for iid %d bal %d", 
-		accept->iid, accept->ballot);
+	paxos_log_debug("Handle accept for iid %d bal %d", accept->iid, accept->ballot);
+
 	if (acceptor_receive_accept(a->state, accept, &out) != 0) {
 		if (out.type == PAXOS_ACCEPTED) {
 			peers_foreach_client(a->peers, peer_send_paxos_message, &out);
 		} else if (out.type == PAXOS_PREEMPTED) {
 			send_paxos_message(peer_get_buffer(p), &out);
 		}
+
 		paxos_log_debug("EVACCEPTOR --> (Handle Accept) out Message Info: %x %x %x %x", out.msg_info[0], out.msg_info[1], out.msg_info[2], out.msg_info[3]);
 		paxos_message_destroy(&out);
 	}
@@ -127,8 +129,10 @@ static void evacceptor_handle_repeat(struct peer* p, paxos_message* msg, void* a
 	struct evacceptor* a = (struct evacceptor*)arg;
 	paxos_log_debug("EVACCEPTOR --> (Handle Repeat) repeat Message Info: %x %x %x %x", msg->msg_info[0], msg->msg_info[1], msg->msg_info[2], msg->msg_info[3]);
 	paxos_log_debug("Handle repeat for iids %d-%d", repeat->from, repeat->to);
+
 	for (iid = repeat->from; iid <= repeat->to; ++iid) {
 		paxos_log_debug("processing iid %ld", iid);
+
 		if (acceptor_receive_repeat(a->state, iid, &accepted)) {
 			paxos_log_debug("acceptor  receive repeat %ld", iid);
 			send_paxos_accepted(peer_get_buffer(p), &accepted);

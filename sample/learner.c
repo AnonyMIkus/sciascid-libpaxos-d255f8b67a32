@@ -84,21 +84,24 @@ static void start_learner(const char* config)
 	struct evlearner* lea;
 	struct event_base* base;
 
+	// Threadsafe event call.
 	struct event_config* event_config = event_config_new();
 	base = event_base_new_with_config(event_config);
 	event_config_free(event_config);
+
 	lea = evlearner_init(config, deliver, NULL, base);
 	if (lea == NULL) {
 		printf("Could not start the learner!\n");
 		exit(1);
 	}
 	
+	// Signal handling
 	sig = evsignal_new(base, SIGINT, handle_sigint, base);
 	evsignal_add(sig, NULL);
-
 	signal(SIGPIPE, SIG_IGN);
-	event_base_dispatch(base);
 
+	// Finish event handling.
+	event_base_dispatch(base);
 	event_free(sig);
 	evlearner_free(lea);
 	event_base_free(base);
@@ -107,16 +110,12 @@ static void start_learner(const char* config)
 int main(int argc, char const *argv[])
 {
 	const char* config = "../paxos.conf";
-
 	if (argc != 1 && argc != 2) {
 		printf("Usage: %s [path/to/paxos.conf]\n", argv[0]);
 		exit(1);
 	}
-
 	if (argc == 2)
 		config = argv[1];
-
 	start_learner(config);
-	
 	return 0;
 }

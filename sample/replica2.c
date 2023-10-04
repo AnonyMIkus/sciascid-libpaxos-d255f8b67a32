@@ -98,11 +98,12 @@ static void start_replica(int nnodes, struct evpaxos_config* cfg, pthread_t* ref
 
 	if (verbose)
 		cb = deliver;
+
 	struct event_config* event_config = event_config_new();
 	base = event_base_new_with_config(event_config);
 	setPGS(cfg, pgs);
-
 	int i = 0;
+
 	while (i < nnodes)
 	{
 		p = evpaxos_alloc_parms(i, cfg, cb, NULL, base, &(syncs[i]),pgs);
@@ -159,11 +160,13 @@ int main(int argc, char const* argv[])
 	// Analysis of input.
 	if (argc < 1)
 		usage(argv[0]);
+
 	if (argc >= 2 && argv[1][0] != '-') 
 	{
 		config = argv[1];
 		i++;
 	}
+
 	while (i != argc) {
 		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
 			usage(argv[0]);

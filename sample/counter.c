@@ -112,21 +112,38 @@ static void update_state(struct counter_replica* replica, unsigned iid)
 	replica->instance_id = iid;
 }
 
+/**
+ * This function updates the trim information for a specific replica based on the provided replica ID and trim ID.
+ * It also checks if a trim operation should be performed and sends a trim message to the Paxos protocol if necessary.
+ *
+ * @param replica A pointer to the counter replica structure.
+ * @param replica_id The ID of the replica for which trim information is updated.
+ * @param trim_id The trim ID to set for the specified replica.
+ */
 static void update_trim_info(struct counter_replica* replica, int replica_id, int trim_id)
 {
 	if (trim_id <= replica->trim.instances[replica_id])
 		return;
+
 	int i, min = replica->trim.instances[0];
 	replica->trim.instances[replica_id] = trim_id;
+
 	for (i = 0; i < replica->trim.count; i++)
 		if (replica->trim.instances[i] < min)
 			min = replica->trim.instances[i];
+
 	if (min > replica->trim.last_trim) {
 		replica->trim.last_trim = min;
 		evpaxos_replica_send_trim(replica->paxos_replica, min);
 	}
 }
 
+/**
+ * This function constructs and submits a trim message to the Paxos protocol for the counter replica.
+ * It is used to trigger the trimming of old instances and maintain system stability.
+ *
+ * @param replica A pointer to the counter replica structure.
+ */
 static void submit_trim(struct counter_replica* replica)
 {
 	char trim[64];
@@ -134,6 +151,16 @@ static void submit_trim(struct counter_replica* replica)
 	evpaxos_replica_submit(replica->paxos_replica, trim, strlen(trim)+1);
 }
 
+/**
+ * This function is called when a consensus message is delivered to the counter replica.
+ * It processes incoming messages and updates either the trim information or the replica's state accordingly.
+ * Additionally, it performs periodic checkpoints and submits trim messages as needed.
+ *
+ * @param iid The instance ID of the delivered consensus message.
+ * @param value The consensus message value.
+ * @param size The size of the consensus message.
+ * @param arg A pointer to the counter replica structure.
+ */
 static void on_deliver(unsigned iid, char* value, size_t size, void* arg)
 {
 	int replica_id, trim_id;
@@ -151,6 +178,15 @@ static void on_deliver(unsigned iid, char* value, size_t size, void* arg)
 	}
 }
 
+/**
+ * This function is called when a client submits a value to the counter replica.
+ * It submits a "COUNT" message to the Paxos protocol and sets a periodic event to continue
+ * submitting "COUNT" messages at intervals.
+ *
+ * @param fd The file descriptor (unused).
+ * @param ev The event information (unused).
+ * @param arg A pointer to the counter replica structure.
+ */
 static void on_client_value(int fd, short ev, void* arg)
 {
 	struct counter_replica* replica = (struct counter_replica*)arg;
@@ -158,6 +194,13 @@ static void on_client_value(int fd, short ev, void* arg)
 	event_add(replica->client_ev, &count_interval);
 }
 
+/**
+ * This function initializes and starts a counter replica using the EvPaxos consensus protocol.
+ * It sets up an event loop for the replica to listen for incoming consensus messages and handles signal interrupts.
+ *
+ * @param id The ID of the counter replica.
+ * @param config The path to the configuration file for EvPaxos.
+ */
 static void start_replica(int id, const char* config)
 {
 	struct event* sig;
@@ -165,13 +208,15 @@ static void start_replica(int id, const char* config)
 	struct counter_replica replica;
 	struct evpaxos_config* cfg;
 	
+	// Threadsafe event call.
 	struct event_config* event_config = event_config_new();
 	base = event_base_new_with_config(event_config);
 	event_config_free(event_config);
+
+	// Replica initializing.
 	replica.id = id;
 	cfg = evpaxos_config_read(config);
-	replica.paxos_replica = evpaxos_replica_init(id, cfg, on_deliver, 
-		&replica, base);
+	replica.paxos_replica = evpaxos_replica_init(id, cfg, on_deliver, &replica, base);
 	
 	if (replica.paxos_replica == NULL) {
 		printf("Failed to initialize paxos replica\n");
@@ -180,19 +225,18 @@ static void start_replica(int id, const char* config)
 	
 	init_state(&replica);
 	evpaxos_replica_set_instance_id(replica.paxos_replica, replica.instance_id);
-	
 	memset(&replica.trim, 0, sizeof(struct trim_info));
 	int replica_count = evpaxos_replica_count(replica.paxos_replica);
 	replica.trim.count = replica_count;
 	
+	// Signal handling.
 	sig = evsignal_new(base, SIGINT, handle_sigint, base);
 	evsignal_add(sig, NULL);
 	
+	// Event handling
 	replica.client_ev = evtimer_new(base, on_client_value, &replica);
 	event_add(replica.client_ev, &count_interval);
-	
 	event_base_dispatch(base);
-	
 	event_free(sig);
 	event_free(replica.client_ev);
 	evpaxos_replica_free(replica.paxos_replica);
@@ -211,11 +255,11 @@ int main(int argc, char const *argv[])
 	}
 	
 	id = atoi(argv[1]);
+
 	if (argc >= 3)
 		config = argv[2];
 	
 	signal(SIGPIPE, SIG_IGN);
 	start_replica(id, config);
-
 	return 0;
 }

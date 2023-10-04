@@ -31,28 +31,46 @@
 #include <evpaxos.h>
 #include <signal.h>
 
-static void
-handle_sigint(int sig, short ev, void* arg)
+ /**
+  * @brief Signal handler for handling SIGINT.
+  *
+  * This function is a signal handler for SIGINT (Ctrl+C) and is used to gracefully exit the acceptor.
+  * It prints a message indicating the signal received and exits the event loop.
+  *
+  * @param sig The signal number (SIGINT).
+  * @param ev The event flags (unused).
+  * @param arg A pointer to the event base associated with the acceptor.
+  */
+static void handle_sigint(int sig, short ev, void* arg)
 {
 	struct event_base* base = arg;
 	printf("Caught signal %d\n", sig);
 	event_base_loopexit(base, NULL);
 }
 
-static void
-start_acceptor(int id, const char* config)
+/**
+ * This function initializes and starts an acceptor for the distributed system using Paxos.
+ * It creates an event base, sets up signal handling for SIGINT, and initializes the acceptor.
+ * The acceptor is responsible for handling incoming Paxos messages.
+ *
+ * @param id The unique identifier of the acceptor.
+ * @param config The path to the configuration file for Paxos.
+ */
+static void start_acceptor(int id, const char* config)
 {
 	struct evacceptor* acc;
 	struct event_base* base;
 	struct event* sig;
 
+	// Threadsafe event call.
 	struct event_config* event_config = event_config_new();
 	base = event_base_new_with_config(event_config);
 	event_config_free(event_config);
+	// Signal handling
 	sig = evsignal_new(base, SIGINT, handle_sigint, base);
 	evsignal_add(sig, NULL);
-	
 	acc = evacceptor_init(id, config, base);
+
 	if (acc == NULL) {
 		printf("Could not start the acceptor\n");
 		return;
@@ -60,14 +78,12 @@ start_acceptor(int id, const char* config)
 	
 	signal(SIGPIPE, SIG_IGN);
 	event_base_dispatch(base);
-	
 	event_free(sig);
 	evacceptor_free(acc);
 	event_base_free(base);
 }
 
-int
-main(int argc, char const *argv[])
+int main(int argc, char const *argv[])
 {
 	int id;
 	const char* config = "../paxos.conf";

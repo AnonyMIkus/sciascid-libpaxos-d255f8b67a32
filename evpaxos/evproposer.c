@@ -77,11 +77,15 @@ static void proposer_preexecute(struct evproposer* p)
 	int i;
 	paxos_prepare pr;
 	int count = p->preexec_window - proposer_prepared_count(p->state);
-	if (count <= 0) return;
+
+	if (count <= 0)
+		return;
+
 	for (i = 0; i < count; i++) {
 		proposer_prepare(p->state, &pr);
 		peers_foreach_acceptor(p->peers, peer_send_prepare, &pr);
 	}
+
 	paxos_log_debug("Opened %d new instances", count);
 }
 
@@ -93,8 +97,10 @@ static void proposer_preexecute(struct evproposer* p)
 static void try_accept(struct evproposer* p)
 {
 	paxos_accept accept;
+
 	while (proposer_accept(p->state, &accept))
 		peers_foreach_acceptor(p->peers, peer_send_accept, &accept);
+
 	proposer_preexecute(p);
 }
 
@@ -111,8 +117,10 @@ static void evproposer_handle_promise(struct peer* p, paxos_message* msg, void* 
 	paxos_prepare prepare;
 	paxos_promise* pro = &msg->u.promise;
 	int preempted = proposer_receive_promise(proposer->state, pro, &prepare);
+
 	if (preempted)
 		peers_foreach_acceptor(proposer->peers, peer_send_prepare, &prepare);
+
 	try_accept(proposer);
 }
 
@@ -135,8 +143,8 @@ static void evproposer_handle_preempted(struct peer* p, paxos_message* msg, void
 {
 	struct evproposer* proposer = arg;
 	paxos_prepare prepare;
-	int preempted = proposer_receive_preempted(proposer->state,
-		&msg->u.preempted, &prepare);
+	int preempted = proposer_receive_preempted(proposer->state, &msg->u.preempted, &prepare);
+
 	if (preempted) {
 		peers_foreach_acceptor(proposer->peers, peer_send_prepare, &prepare);
 		try_accept(proposer);
@@ -236,8 +244,7 @@ struct evproposer* evproposer_init_internal(int id, struct evpaxos_config* c, st
 	peers_subscribe(peers, PAXOS_ACCEPTED, evproposer_handle_accepted, p);
 	peers_subscribe(peers, PAXOS_PREEMPTED, evproposer_handle_preempted, p);
 	peers_subscribe(peers, PAXOS_CLIENT_VALUE, evproposer_handle_client_value, p);
-	peers_subscribe(peers, PAXOS_ACCEPTOR_STATE,
-		evproposer_handle_acceptor_state, p);
+	peers_subscribe(peers, PAXOS_ACCEPTOR_STATE, evproposer_handle_acceptor_state, p);
 
 	// Setup timeout
 	struct event_base* base = peers_get_event_base(peers);
@@ -280,8 +287,10 @@ struct evproposer* evproposer_init(int id, const char* config_file, struct event
 	peers_connect_to_acceptors(peers);
 	int port = evpaxos_proposer_listen_port(config, id);
 	int rv = peers_listen(peers, port);
+
 	if (rv == 0)
 		return NULL;
+
 	struct evproposer* p = evproposer_init_internal(id, config, peers);
 	evpaxos_config_free(config);
 	return p;
@@ -298,6 +307,7 @@ void evproposer_free_internal(struct evproposer* p)
 	proposer_free(p->state);
 	free(p);
 }
+
 /**
  * Frees resources of the evproposer structure.
  *

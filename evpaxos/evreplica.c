@@ -53,11 +53,27 @@ struct evpaxos_parms
 	pthread_mutex_t* pgs;
 };
 
-struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config,
-	deliver_function cb, void* arg, struct event_base* base, pthread_mutex_t* isync, pthread_mutex_t* pgs)
+/**
+ * This function allocates and initializes a structure to hold parameters for an
+ * event-driven Paxos replica. It is used to pass these parameters to the replica's
+ * initialization thread.
+ *
+ * @param id The unique identifier for the Paxos replica.
+ * @param config A pointer to the Paxos configuration.
+ * @param cb The delivery callback function for Paxos values.
+ * @param arg An additional argument to be passed to the delivery callback function.
+ * @param base The event base for the Paxos replica.
+ * @param isync A pointer to the mutex for thread synchronization.
+ * @param pgs A pointer to the mutex for Paxos message processing.
+ * @return A pointer to the initialized parameter structure or NULL on failure.
+ */
+struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config, deliver_function cb, void* arg, struct event_base* base, pthread_mutex_t* isync, pthread_mutex_t* pgs)
 {
 	struct evpaxos_parms* p = malloc(sizeof(struct evpaxos_parms));
-	if (!p) return p;
+
+	if (!p) 
+		return p;
+
 	p->id = id;
 	p->config = config;
 	p->f = cb;
@@ -69,16 +85,32 @@ struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config,
 }
 
 /**
- * Delivers a value to the evpaxos replica's deliver function and sets the instance ID.
+ * This function is responsible for delivering a Paxos value (a consensus decision)
+ * to the Paxos replica. It sets the instance ID and invokes the user-defined delivery
+ * callback function if one is registered.
+ *
+ * @param iid The instance ID of the delivered Paxos value.
+ * @param value A pointer to the Paxos value being delivered.
+ * @param size The size of the Paxos value.
+ * @param arg A pointer to the Paxos replica structure.
  */
 static void evpaxos_replica_deliver(unsigned iid, char* value, size_t size, void* arg)
 {
 	struct evpaxos_replica* r = arg;
 	evproposer_set_instance_id(r->proposer, iid);
+
 	if (r->deliver)
 		r->deliver(iid, value, size, r->arg);
 }
 
+/**
+ * This function is used to start a new thread for initializing a Paxos replica. It sets up
+ * the necessary parameters for replica initialization and invokes the `evpaxos_replica_init`
+ * function in the new thread.
+ *
+ * @param inp A pointer to the input parameters for replica initialization.
+ * @return NULL (thread exit)
+ */
 void* evpaxos_replica_init_thread_start(void* inp)
 {
 	paxos_log_debug("In New thread");
@@ -95,7 +127,16 @@ void* evpaxos_replica_init_thread_start(void* inp)
 	return NULL;
 }
 
-int evpaxos_replica_init_thread(void* inref,void* insyncs, struct evpaxos_parms* p)
+/**
+ * This function initializes a Paxos replica in a new thread. It sets up the necessary parameters
+ * and starts the thread by calling `pthread_create`. It also handles thread synchronization.
+ *
+ * @param inref A pointer to the thread reference variable.
+ * @param insyncs A pointer to the thread synchronization mutex.
+ * @param p A pointer to the parameters for replica initialization.
+ * @return Returns 0 on success or an error code on failure.
+ */
+int evpaxos_replica_init_thread(void* inref, void* insyncs, struct evpaxos_parms* p)
 {
 	paxos_log_debug("Start threading process ...");
 	pthread_t* ref = (pthread_t*)inref;
@@ -103,6 +144,7 @@ int evpaxos_replica_init_thread(void* inref,void* insyncs, struct evpaxos_parms*
 	p->thread = ref;
 	p->tsync = syncs;
 	paxos_log_debug("Set up mutex.");
+	// Mutex initializing.
 	pthread_mutexattr_t attr;
 	pthread_mutexattr_init(&attr);
 	pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE);
@@ -117,15 +159,23 @@ int evpaxos_replica_init_thread(void* inref,void* insyncs, struct evpaxos_parms*
 }
 
 /**
- * Initializes an evpaxos replica structure with the provided configuration, deliver function,
- * argument, and event base.
+ * This function initializes a Paxos replica by setting up the necessary components,
+ * including peers, acceptor, proposer, and learner. It also handles port listening and
+ * connects to acceptors.
+ *
+ * @param id The unique identifier for the Paxos replica.
+ * @param c A pointer to the Paxos configuration.
+ * @param f The delivery callback function for Paxos values.
+ * @param arg An additional argument to be passed to the delivery callback function.
+ * @param base The event base for the Paxos replica.
+ * @return A pointer to the initialized Paxos replica structure or NULL on failure.
  */
 struct evpaxos_replica* evpaxos_replica_init(int id, struct evpaxos_config* c, deliver_function f, void* arg, struct event_base* base)
 {
 	struct evpaxos_replica* r;
 	struct evpaxos_config* config;
+
 	r = malloc(sizeof(struct evpaxos_replica));
-	
 	config = c;
 	paxos_log_debug("Initializing peers");
 	r->peers = peers_new(base, config);
@@ -139,30 +189,34 @@ struct evpaxos_replica* evpaxos_replica_init(int id, struct evpaxos_config* c, d
 	r->learner  = evlearner_init_internal(config, r->peers, evpaxos_replica_deliver, r);
 	r->deliver = f;
 	r->arg = arg;
-
 	paxos_log_debug("Got id %d", id);
-
 	paxos_log_debug("Getting listener port");
 	int port = evpaxos_acceptor_listen_port(config, id);
 	paxos_log_debug("Got port % d", port);
+
 	if (peers_listen(r->peers, port) == 0) {
 		paxos_log_debug("\nListen failed");
 		evpaxos_config_free(config);
 		evpaxos_replica_free(r);
 		return NULL;
 	}
+
 	paxos_log_debug("Listener started");
-//	evpaxos_config_free(config);
+	// evpaxos_config_free(config);
 	return r;
 }
 
 /**
- * Frees the resources associated with an evpaxos replica structure.
+ * This function frees the resources associated with an event-driven Paxos replica,
+ * including its learner, proposer, acceptor, peers, and the replica itself.
+ *
+ * @param r A pointer to the Paxos replica structure to be freed.
  */
 void evpaxos_replica_free(struct evpaxos_replica* r)
 {
 	if (r->learner)
 		evlearner_free_internal(r->learner);
+
 	evproposer_free_internal(r->proposer);
 	evacceptor_free_internal(r->acceptor);
 	peers_free(r->peers);
@@ -170,20 +224,26 @@ void evpaxos_replica_free(struct evpaxos_replica* r)
 }
 
 /**
- * Sets the instance ID for an evpaxos replica.
+ * This function sets the instance ID for an event-driven Paxos replica, which is used
+ * to identify the current Paxos instance during consensus rounds.
+ *
+ * @param r A pointer to the Paxos replica for which the instance ID is to be set.
+ * @param iid The new instance ID to set.
  */
 void evpaxos_replica_set_instance_id(struct evpaxos_replica* r, unsigned iid)
 {
 	if (r->learner)
 		evlearner_set_instance_id(r->learner, iid);
+
 	evproposer_set_instance_id(r->proposer, iid);
 }
 
 /**
- * Sends a paxos_trim message to the specified peer.
+ * This function sends a Paxos trim message with the specified instance ID to all
+ * acceptors in the Paxos network using the provided Paxos replica.
  *
- * @param p Pointer to the peer structure to which the paxos_trim message will be sent.
- * @param arg A pointer to the argument to be passed to the paxos_trim message.
+ * @param p A pointer to the Paxos replica responsible for sending the trim message.
+ * @param arg 
  */
 static void peer_send_trim(struct peer* p, void* arg)
 {
@@ -191,7 +251,11 @@ static void peer_send_trim(struct peer* p, void* arg)
 }
 
 /**
- * Sends a paxos_trim message to all acceptors for the specified instance ID.
+ * This function sends a Paxos trim message with the specified instance ID to all
+ * acceptors in the Paxos network using the provided Paxos replica.
+ *
+ * @param r A pointer to the Paxos replica responsible for sending the trim message.
+ * @param iid The instance ID to be included in the trim message.
  */
 void evpaxos_replica_send_trim(struct evpaxos_replica* r, unsigned iid)
 {
@@ -201,12 +265,18 @@ void evpaxos_replica_send_trim(struct evpaxos_replica* r, unsigned iid)
 
 
 /**
- * Submits a value to the evpaxos replica for processing.
+ * This function submits a Paxos value to the Paxos network through the Paxos replica.
+ * It attempts to submit the value to connected acceptors.
+ *
+ * @param r A pointer to the Paxos replica responsible for submitting the value.
+ * @param value A pointer to the Paxos value to be submitted.
+ * @param size The size of the Paxos value.
  */
 void evpaxos_replica_submit(struct evpaxos_replica* r, char* value, int size)
 {
 	int i;
 	struct peer* p;
+
 	for (i = 0; i < peers_count(r->peers); ++i) {
 		p = peers_get_acceptor(r->peers, i);
 		if (peer_connected(p)) {
@@ -217,7 +287,11 @@ void evpaxos_replica_submit(struct evpaxos_replica* r, char* value, int size)
 }
 
 /**
- * Returns the count of peers associated with the evpaxos replica.
+ * This function returns the count of peers (acceptors) that are connected to a
+ * specific Paxos replica.
+ *
+ * @param r A pointer to the Paxos replica for which to count the connected peers.
+ * @return The count of connected peers.
  */
 int evpaxos_replica_count(struct evpaxos_replica* r)
 {

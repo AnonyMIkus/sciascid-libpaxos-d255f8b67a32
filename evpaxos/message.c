@@ -254,7 +254,7 @@ int recv_paxos_message(struct evbuffer* in, paxos_message* out)
 	buffer = (char*)evbuffer_pullup(in, size);	// Get the pointer to the data in the buffer
 	int rc = msgpack_unpack_next(&msg, buffer, size, &offset);
 	paxos_log_debug("is message ready %ld", rc);
-//	paxos_log_debug("Buffer: %d", sizeof(buffer));
+	// paxos_log_debug("Buffer: %d", sizeof(buffer));
 	if (rc > 0) {
 		if (size > 0)
 		{
@@ -276,7 +276,7 @@ int recv_paxos_message(struct evbuffer* in, paxos_message* out)
 		{
 			for (int i = 0; i < size; i++)
 			{
-		//		paxos_log_debug("offset %d value 0x%2x", i, (0xff) & ((unsigned int)buffer[i]));
+				// paxos_log_debug("offset %d value 0x%2x", i, (0xff) & ((unsigned int)buffer[i]));
 			}
 		}
 		paxos_log_debug("Size: %d offset", size, offset);

@@ -61,9 +61,12 @@ static void start_proposer(const char* config, int id)
 	struct event_base* base;
 	struct evproposer* prop;
 
+	// Threadsafe event call.
 	struct event_config* event_config = event_config_new();
 	base = event_base_new_with_config(event_config);
 	event_config_free(event_config);
+
+	// Signal handling (second part after if-case).
 	sig = evsignal_new(base, SIGINT, handle_sigint, base);
 	evsignal_add(sig, NULL);
 	
@@ -74,8 +77,9 @@ static void start_proposer(const char* config, int id)
 	}
 
 	signal(SIGPIPE, SIG_IGN);
-	event_base_dispatch(base);
 
+	// Finish event handling
+	event_base_dispatch(base);
 	event_free(sig);
 	evproposer_free(prop);
 	event_base_free(base);

@@ -129,13 +129,18 @@ struct evpaxos_config* evpaxos_config_read(const char* path)
 		paxos_log_error("Error: %s is not a regular file\n", path);
 		goto failure;
 	}
+
 	c = malloc(sizeof(struct evpaxos_config));
+
 	if (c == NULL) {
 		perror("malloc");
 		goto failure;
 	}
+
 	memset(c, 0, sizeof(struct evpaxos_config));
 	c->pgs = NULL;
+
+	// Read al lines of file
 	while (fgets(line, sizeof(line), f) != NULL) {
 		if (line[0] != '#' && line[0] != '\n' && line[0] != '\r') {
 			if (parse_line(c, line) == 0) {
@@ -147,7 +152,8 @@ struct evpaxos_config* evpaxos_config_read(const char* path)
 		};
 		linenumber++;
 	}
-	printf("\nFinish readig conf.\n");
+
+	printf("Finish readig conf.\n");
 	fclose(f);
 	return c;
 
@@ -176,10 +182,13 @@ int evpaxos_replica_nodes(struct evpaxos_config* ref) {
 void evpaxos_config_free(struct evpaxos_config* config)
 {
 	int i;
+
 	for (i = 0; i < config->proposers_count; ++i)
 		address_free(&config->proposers[i]);
+
 	for (i = 0; i < config->acceptors_count; ++i)
 		address_free(&config->acceptors[i]);
+
 	free(config);
 }
 
@@ -253,13 +262,17 @@ int evpaxos_acceptor_listen_port(struct evpaxos_config* config, int i)
 static char* strtrim(char* string)
 {
 	char *s, *t;
-	for (s = string; isspace(*s); s++)
+	for (s = string; isspace(*s); s++) // Empty for loop?
 		;
+
 	if (*s == 0)
 		return s;
+
 	t = s + strlen(s) - 1;
+
 	while (t > s && isspace(*t))
 		t--;
+
 	*++t = '\0';
 	return s;
 }
@@ -297,15 +310,19 @@ static int parse_bytes(char* str, size_t* bytes)
  */
 static int parse_boolean(char* str, int* boolean)
 {
-	if (str == NULL) return 0;
+	if (str == NULL) 
+		return 0;
+
 	if (strcasecmp(str, "yes") == 0) {
 		*boolean = 1;
 		return 1;
 	}
+
 	if (strcasecmp(str, "no") == 0) {
 		*boolean = 0;
 		return 1;
 	}	
+
 	return 0;
 }
 
@@ -321,9 +338,15 @@ static int parse_integer(char* str, int* integer)
 {
 	int n;
 	char* end;
-	if (str == NULL) return 0;
+	
+	if (str == NULL)
+		return 0;
+
 	n = strtol(str, &end, 10);
-	if (end == str) return 0;
+
+	if (end == str) 
+		return 0;
+
 	*integer = n;
 	return 1;
 }
@@ -341,6 +364,7 @@ static int parse_string(char* str, char** string)
 {
 	if (str == NULL || str[0] == '\0' || str[0] == '\n')
 		return 0;
+
 	*string = strdup(str);
 	return 1;
 }
@@ -362,11 +386,13 @@ static int parse_address(char* str, struct address* addr)
 	char address[128];
 	int rv = sscanf(str, "%d %s %d", &id, address, &port);
 	printf("\nparsed %d-%s-%d", id, address, port);
+
 	if (rv == 3) {
 		address_init(addr, address, port);
 		printf("\nSuccesful parsed");
 		return 1;
 	}
+
 	printf("\nUnsuccesful parsed");
 	return 0;
 }
@@ -382,11 +408,17 @@ static int parse_address(char* str, struct address* addr)
  */
 static int parse_verbosity(char* str, paxos_log_level* verbosity)
 {
-	if (strcasecmp(str, "quiet") == 0) *verbosity = PAXOS_LOG_QUIET;
-	else if (strcasecmp(str, "error") == 0) *verbosity = PAXOS_LOG_ERROR;
-	else if (strcasecmp(str, "info") == 0) *verbosity = PAXOS_LOG_INFO;
-	else if (strcasecmp(str, "debug") == 0) *verbosity = PAXOS_LOG_DEBUG;
-	else return 0;
+	if (strcasecmp(str, "quiet") == 0)
+		*verbosity = PAXOS_LOG_QUIET;
+	else if (strcasecmp(str, "error") == 0)
+		*verbosity = PAXOS_LOG_ERROR;
+	else if (strcasecmp(str, "info") == 0)
+		*verbosity = PAXOS_LOG_INFO;
+	else if (strcasecmp(str, "debug") == 0)
+		*verbosity = PAXOS_LOG_DEBUG;
+	else
+		return 0;
+
 	return 1;
 }
 
@@ -399,9 +431,13 @@ static int parse_verbosity(char* str, paxos_log_level* verbosity)
  */
 static int parse_backend(char* str, paxos_storage_backend* backend)
 {
-	if (strcasecmp(str, "memory") == 0) *backend = PAXOS_MEM_STORAGE;
-	else if (strcasecmp(str, "lmdb") == 0) *backend = PAXOS_LMDB_STORAGE;
-	else return 0;
+	if (strcasecmp(str, "memory") == 0) 
+		*backend = PAXOS_MEM_STORAGE;
+	else if (strcasecmp(str, "lmdb") == 0) 
+		*backend = PAXOS_LMDB_STORAGE;
+	else 
+		return 0;
+
 	return 1;
 }
 
@@ -414,11 +450,13 @@ static int parse_backend(char* str, paxos_storage_backend* backend)
 static struct option* lookup_option(char* opt)
 {
 	int i = 0;
+
 	while (options[i].name != NULL) {
 		if (strcasecmp(options[i].name, opt) == 0)
 			return &options[i];
 		i++;
 	}
+
 	return NULL;
 }
 
@@ -430,44 +468,41 @@ static struct option* lookup_option(char* opt)
  * @param line The configuration line to parse.
  * @return 1 on successful parsing, 0 on failure.
  */
-static int 
-parse_line(struct evpaxos_config* c, char* line)
+static int parse_line(struct evpaxos_config* c, char* line)
 {
 	int rv;
 	char* tok;
 	char* sep = " ";
 	struct option* opt;
-
 	line = strtrim(line);
 	tok = strsep(&line, sep);
 	
 	if (strcasecmp(tok, "a") == 0 || strcasecmp(tok, "acceptor") == 0) {
 		if (c->acceptors_count >= MAX_N_OF_PROPOSERS) {
-			paxos_log_error("Number of acceptors exceded maximum of: %d\n",
-				MAX_N_OF_PROPOSERS);
+			paxos_log_error("Number of acceptors exceded maximum of: %d\n",	MAX_N_OF_PROPOSERS);
 			return 0;
 		}
+
 		struct address* addr = &c->acceptors[c->acceptors_count++];
 		return parse_address(line, addr);
 	}
 	
 	if (strcasecmp(tok, "p") == 0 || strcasecmp(tok, "proposer") == 0) {
 		if (c->proposers_count >= MAX_N_OF_PROPOSERS) {
-			paxos_log_error("Number of proposers exceded maximum of: %d\n",
-				MAX_N_OF_PROPOSERS);
+			paxos_log_error("Number of proposers exceded maximum of: %d\n",	MAX_N_OF_PROPOSERS);
 			return 0;
 		}
+
 		struct address* addr = &c->proposers[c->proposers_count++];
 		return parse_address(line, addr);
 	}
 	
 	if (strcasecmp(tok, "r") == 0 || strcasecmp(tok, "replica") == 0) {
-		if (c->proposers_count >= MAX_N_OF_PROPOSERS ||
-			c->acceptors_count >= MAX_N_OF_PROPOSERS ) {
-				paxos_log_error("Number of replicas exceded maximum of: %d\n",
-					MAX_N_OF_PROPOSERS);
+		if (c->proposers_count >= MAX_N_OF_PROPOSERS || c->acceptors_count >= MAX_N_OF_PROPOSERS ) {
+				paxos_log_error("Number of replicas exceded maximum of: %d\n", MAX_N_OF_PROPOSERS);
 				return 0;
 		}
+
 		struct address* pro_addr = &c->proposers[c->proposers_count++];
 		struct address* acc_addr = &c->acceptors[c->acceptors_count++];
 		int rv = parse_address(line, pro_addr);
