@@ -109,14 +109,14 @@ void paxos_accept_destroy(paxos_accept* p)
 
 void paxos_accepted_destroy(paxos_accepted* p)
 {
-	paxos_log_debug("destroying %lx in accepted", p);
+	// paxos_log_debug("destroying %lx in accepted", p);
 	if (p->aids != NULL) free(p->aids);
 	p->aids = NULL;
-	paxos_log_debug("destroying %lx in accepted stage 1", p);
+	// paxos_log_debug("destroying %lx in accepted stage 1", p);
 //	paxos_value_destroy(&p->value_0);
 	if (p->values != NULL)
 	{
-		paxos_log_debug("destroying %lx in accepted stage 2 start", p);
+		// paxos_log_debug("destroying %lx in accepted stage 2 start", p);
 		for (int ii = 0; ii < p->n_aids; ii++)
 		{
 			paxos_log_debug("destroying value %lx in accepted stage 2 idx %ld", p->values[ii].paxos_value_val,ii);

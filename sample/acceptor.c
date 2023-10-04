@@ -46,7 +46,9 @@ start_acceptor(int id, const char* config)
 	struct event_base* base;
 	struct event* sig;
 
-	base = event_base_new();
+	struct event_config* event_config = event_config_new();
+	base = event_base_new_with_config(event_config);
+	event_config_free(event_config);
 	sig = evsignal_new(base, SIGINT, handle_sigint, base);
 	evsignal_add(sig, NULL);
 	

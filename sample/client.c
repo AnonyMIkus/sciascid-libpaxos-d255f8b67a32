@@ -36,6 +36,7 @@
 #include <event2/event.h>
 #include <netinet/tcp.h>
 #include <malloc.h>
+#include <pthread.h>
 
 #define MAX_VALUE_SIZE 8192
 
@@ -216,9 +217,9 @@ static struct bufferevent* connect_to_proposer(struct client* c, const char* con
 		return NULL;
 	}
 	struct sockaddr_in addr = evpaxos_proposer_address(conf, proposer_id);
-	bev = bufferevent_socket_new(c->base, -1, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
+	bev = bufferevent_socket_new(c->base, -1, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS | BEV_OPT_UNLOCK_CALLBACKS | BEV_OPT_THREADSAFE);
 	bufferevent_setcb(bev, NULL, NULL, on_connect, c);
-	bufferevent_enable(bev, EV_READ|EV_WRITE);
+	bufferevent_enable(bev, EV_READ | EV_WRITE);
 	bufferevent_socket_connect(bev, (struct sockaddr*)&addr, sizeof(addr));
 	int flag = 1;
 	setsockopt(bufferevent_getfd(bev), IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
@@ -237,8 +238,9 @@ static struct client* make_client(const char* config, int proposer_id, int outst
 {
 	struct client* c;
 	c = malloc(sizeof(struct client));
-	c->base = event_base_new(); // Have to look up event_base_new() / libevent.
-	
+	struct event_config* event_config = event_config_new();
+	c->base = event_base_new_with_config(event_config); // Have to look up event_base_new() / libevent.
+	event_config_free(event_config);
 	memset(&c->stats, 0, sizeof(struct stats));
 	c->bev = connect_to_proposer(c, config, proposer_id);
 	if (c->bev == NULL) // Exit if proposer do not exist.
@@ -320,6 +322,7 @@ int main(int argc, char const *argv[])
 {
 	mallopt(M_MXFAST, 0);
 //	mallopt(M_PERTURB, 0x100);
+	evthread_use_pthreads();
 	int i = 1;
 	int proposer_id = 0;
 	int outstanding = 1;

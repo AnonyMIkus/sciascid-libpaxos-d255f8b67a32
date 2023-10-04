@@ -408,6 +408,8 @@ static paxos_accepted* paxos_accepted_dup(paxos_accepted* ack)
 	copy = malloc(sizeof(paxos_accepted));
 	memcpy(copy, ack, sizeof(paxos_accepted));
 //	paxos_value_copy(&copy->value, &ack->value);
+	copy->value_0.paxos_value_len = 0;
+	copy->value_0.paxos_value_val = NULL;
 	paxos_log_debug("learner %lx add copy stage2", ack);
 	if (copy->n_aids > 0)
 	{
@@ -434,6 +436,8 @@ static void paxos_accepted_deep_copy(paxos_accepted* ack, paxos_accepted* copy)
 	paxos_log_debug("learner %lx add copy stage1", ack);
 
 	memcpy(copy, ack, sizeof(paxos_accepted));
+	copy->value_0.paxos_value_len = 0;
+	copy->value_0.paxos_value_val = NULL;
 //	paxos_value_copy(&copy->value, &ack->value);
 	paxos_log_debug("learner %lx add copy stage2", ack);
 	if (copy->n_aids > 0)

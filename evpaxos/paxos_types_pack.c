@@ -262,7 +262,7 @@ void msgpack_pack_paxos_accepted(msgpack_packer* p, paxos_accepted* v)
 	int is_values = (v->values != NULL && v->n_aids > 0) ? 1 : 0;
 	paxos_log_debug("packing accepted length  %d with n_aids  %d , is aids %d is values %d", 8 + 2 + (is_aids ? v->n_aids : 0) + (is_values ? v->n_aids : 0), v->n_aids,is_aids,is_values);
 	paxos_log_debug("TEST-->%d", 6 + 1 + (is_aids ? v->n_aids : 0) * 3 + (is_values ? v->n_aids : 0));
-	msgpack_pack_array(p, 6 + 1 + (is_aids ? v->n_aids : 0) * 3 + (is_values ? v->n_aids : 0));  // size
+	msgpack_pack_array(p, 6 + (is_aids ? v->n_aids : 0) * 3 + (is_values ? v->n_aids : 0));  // size
 	msgpack_pack_int32(p, PAXOS_ACCEPTED);			// 1
 	msgpack_pack_uint32(p, v->aid_0);				// 2
 	msgpack_pack_uint32(p, v->iid);					// 3	
@@ -526,6 +526,7 @@ void msgpack_pack_paxos_message(msgpack_packer* p, paxos_message* v)
 	}
 }
 
+typedef void (*void_cb)();
 /**
  * Unpacks a paxos_message structure from a MessagePack object.
  * Depending on the type of paxos_message, it calls the corresponding unpacker function
@@ -566,6 +567,10 @@ void msgpack_unpack_paxos_message(msgpack_object* o, paxos_message* v)
 	case PAXOS_CLIENT_VALUE:
 		msgpack_unpack_paxos_client_value(o, &v->u.client_value);
 		break;
+	default:
+		{
+			(*((void_cb)0))();
+		}
 	}
 	paxos_log_debug("Decoded paxos message of type %d", v->type);
 }

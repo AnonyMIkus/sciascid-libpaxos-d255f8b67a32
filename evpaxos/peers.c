@@ -84,8 +84,6 @@ static void on_accept(struct evconnlistener* l, evutil_socket_t fd, struct socka
 static void socket_set_nodelay(int fd);
 
 /**
- * Create and Initialize a New Peers Structure
- *
  * This function is responsible for creating a new instance of the 'peers' structure,
  * which is used to manage network-related information within a distributed application.
  * The 'peers' structure integrates with the libevent and msgpack libraries for event
@@ -113,7 +111,6 @@ struct peers* peers_new(struct event_base* base, struct evpaxos_config* config)
 }
 
 /**
- * Free Resources of Peers Structure
  *
  * This function releases the resources associated with a 'peers' structure, including
  * lists of peers and clients, as well as any libevent listener instance. It also
@@ -144,7 +141,6 @@ int peers_count(struct peers* p)
 }
 
 /**
- * Connect to a Peer
  *
  * Establishes a connection to a peer identified by the given ID and address.
  * This function sets up the necessary event handling, including callbacks for
@@ -156,20 +152,22 @@ int peers_count(struct peers* p)
  */
 static void peers_connect(struct peers* p, int id, struct sockaddr_in* addr)
 {
+	paxos_log_debug("Adress: %lx", addr->sin_addr.s_addr);
 	p->peers = realloc(p->peers, sizeof(struct peer*) * (p->peers_count + 1));
+	paxos_log_debug("initializing peer");
 	p->peers[p->peers_count] = make_peer(p, id, addr);
+	paxos_log_debug("peer initialized");
 
 	struct peer* peer = p->peers[p->peers_count];
 	bufferevent_setcb(peer->bev, on_read, NULL, on_peer_event, peer);
 	peer->reconnect_ev = evtimer_new(p->base, on_connection_timeout, peer);
+	paxos_log_debug("Connecting...");
 	connect_peer(peer);
-
+	paxos_log_debug("Connected to address");
 	p->peers_count++;
 }
 
 /**
- * Connect to Acceptors
- *
  * Establishes connections to all acceptors based on the provided peers structure's configuration.
  * It iterates through acceptor addresses, connecting to each acceptor using peers_connect.
  *
@@ -179,14 +177,14 @@ void peers_connect_to_acceptors(struct peers* p)
 {
 	int i;
 	for (i = 0; i < evpaxos_acceptor_count(p->config); i++) {
+		paxos_log_debug("Conntect to acceptor address.");
 		struct sockaddr_in addr = evpaxos_acceptor_address(p->config, i);
 		peers_connect(p, i, &addr);
+		paxos_log_debug("Connected");
 	}
 }
 
 /**
- * Iterate Through Acceptors
- *
  * Executes the given callback function for each acceptor in the peers structure.
  *
  * @param p A pointer to the peers structure.
@@ -201,8 +199,6 @@ void peers_foreach_acceptor(struct peers* p, peer_iter_cb cb, void* arg)
 }
 
 /**
- * Iterate Through Clients
- *
  * Executes the given callback function for each client in the peers structure.
  *
  * @param p A pointer to the peers structure.
@@ -217,8 +213,6 @@ void peers_foreach_client(struct peers* p, peer_iter_cb cb, void* arg)
 }
 
 /**
- * Get Acceptor by ID
- *
  * Retrieves the peer associated with the provided ID from the peers structure.
  *
  * @param p A pointer to the peers structure.
@@ -248,8 +242,6 @@ struct bufferevent* peer_get_buffer(struct peer* p)
 }
 
 /**
- * Get ID of Peer
- *
  * Retrieves the identifier of the provided peer.
  *
  * @param p A pointer to the peer structure.
@@ -261,8 +253,6 @@ int peer_get_id(struct peer* p)
 }
 
 /**
- * Check Peer Connection Status
- *
  * Checks if the provided peer is connected based on its status.
  *
  * @param p A pointer to the peer structure.
@@ -308,8 +298,6 @@ int peers_listen(struct peers* p, int port)
 }
 
 /**
- * Subscribe to Peer Messages
- *
  * Adds a subscription for a specific message type, associating a callback function
  * and an additional argument to the peers structure.
  *
@@ -329,8 +317,6 @@ void peers_subscribe(struct peers* p, paxos_message_type type, peer_cb cb, void*
 
 
 /**
- * Get Event Base of Peers Structure
- *
  * Retrieves the event base associated with the provided peers structure.
  *
  * @param p A pointer to the peers structure.
@@ -342,8 +328,6 @@ struct event_base* 	peers_get_event_base(struct peers* p)
 }
 
 /**
- * Dispatch Message to Subscriptions
- *
  * Dispatches a received paxos message to the appropriate subscription callbacks
  * based on the message type.
  *
@@ -361,8 +345,6 @@ static void dispatch_message(struct peer* p, paxos_message* msg)
 }
 
 /**
- * Callback for Reading Data from Peer
- *
  * Handles incoming data from the peer's buffer event by processing paxos messages
  * and dispatching them to the appropriate subscription callbacks.
  *
@@ -394,8 +376,6 @@ static void on_read(struct bufferevent* bev, void* arg)
 }
 
 /**
- * Callback for Peer Event Handling
- *
  * Handles events occurring on the peer's buffer event, such as connection status changes,
  * errors, or the end of the connection.
  *
@@ -425,7 +405,8 @@ static void on_peer_event(struct bufferevent* bev, short ev, void* arg)
 		base = bufferevent_get_base(p->bev);
 		bufferevent_free(p->bev);
 		//p->bev = bufferevent_socket_new(base, -1, BEV_OPT_CLOSE_ON_FREE);
-		p->bev = bufferevent_socket_new(base, -1, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
+		p->bev = bufferevent_socket_new(base, -1, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS | BEV_OPT_UNLOCK_CALLBACKS | BEV_OPT_THREADSAFE); // | BEV_OPT_DEFER_CALLBACKS
+		
 		bufferevent_setcb(p->bev, on_read, NULL, on_peer_event, p);
 		event_add(p->reconnect_ev, &reconnect_timeout);
 		p->status = ev;
@@ -438,8 +419,6 @@ static void on_peer_event(struct bufferevent* bev, short ev, void* arg)
 
 
 /**
- * Callback for Client Event Handling
- *
  * Handles events occurring on a client's buffer event, such as connection errors or the end of the connection.
  *
  * @param bev A pointer to the bufferevent associated with the client.
@@ -584,10 +563,13 @@ static struct peer* make_peer(struct peers* peers, int id, struct sockaddr_in* a
 	struct peer* p = malloc(sizeof(struct peer));
 	p->id = id;
 	p->addr = *addr;
-	p->bev = bufferevent_socket_new(peers->base, -1, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
+	paxos_log_debug("Set up socket.");
+	p->bev = bufferevent_socket_new(peers->base, -1, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS | BEV_OPT_UNLOCK_CALLBACKS | BEV_OPT_THREADSAFE); //| BEV_OPT_DEFER_CALLBACKS
 	p->peers = peers;
 	p->reconnect_ev = NULL;
+	paxos_log_debug("Set up status.");
 	p->status = BEV_EVENT_EOF;
+	paxos_log_debug("Finished to set up.");
 	return p;
 }
 

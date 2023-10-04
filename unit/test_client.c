@@ -67,7 +67,9 @@ test_client_new(const char* config, int proposer_id)
 {
 	struct test_client* c;
 	c = malloc(sizeof(struct test_client));
-	c->base = event_base_new();
+	struct event_config* event_config = event_config_new();
+	c->base = event_base_new_with_config(event_config);
+	event_config_free(event_config);
 	c->bev = connect_to_proposer(c, config, proposer_id);
 	if (c->bev == NULL)
 		return NULL;

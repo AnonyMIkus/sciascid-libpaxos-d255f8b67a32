@@ -128,10 +128,14 @@ static void evacceptor_handle_repeat(struct peer* p, paxos_message* msg, void* a
 	paxos_log_debug("EVACCEPTOR --> (Handle Repeat) repeat Message Info: %x %x %x %x", msg->msg_info[0], msg->msg_info[1], msg->msg_info[2], msg->msg_info[3]);
 	paxos_log_debug("Handle repeat for iids %d-%d", repeat->from, repeat->to);
 	for (iid = repeat->from; iid <= repeat->to; ++iid) {
+		paxos_log_debug("processing iid %ld", iid);
 		if (acceptor_receive_repeat(a->state, iid, &accepted)) {
+			paxos_log_debug("acceptor  receive repeat %ld", iid);
 			send_paxos_accepted(peer_get_buffer(p), &accepted);
 			paxos_accepted_destroy(&accepted);
 		}
+		else
+			paxos_log_debug("acceptor  didnt receive repeat %ld", iid);
 	}
 }
 

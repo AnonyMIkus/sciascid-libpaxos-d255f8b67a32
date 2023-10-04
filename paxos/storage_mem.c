@@ -151,7 +151,7 @@ static int mem_storage_put(void* handle, paxos_accepted* acc)
 	paxos_accepted_copy(record, acc);
 	k = kh_put_record(s->records, acc->iid, &rv);
 	if (rv == -1) { // error
-		free(record);
+		paxos_accepted_free(record);
 		return -1;
 	}
 	if (rv == 0) { // key is already present

@@ -42,11 +42,11 @@
 static int bufferevent_pack_data(void* data, const char* buf, size_t len)
 {
 	struct bufferevent* bev = (struct bufferevent*)data;
-	paxos_log_debug("len %d buffer: %lx", len, buf);
+	/*	paxos_log_debug("len %d buffer: %lx", len, buf);
 	if(len == 1) 
 	{ 
 		paxos_log_debug("data written on 0 %lx", ((unsigned long) (*buf))&0xff);
-	}
+	}*/
 	bufferevent_write(bev, buf, len);
 	return 0;
 }
@@ -254,27 +254,38 @@ int recv_paxos_message(struct evbuffer* in, paxos_message* out)
 	buffer = (char*)evbuffer_pullup(in, size);	// Get the pointer to the data in the buffer
 	int rc = msgpack_unpack_next(&msg, buffer, size, &offset);
 	paxos_log_debug("is message ready %ld", rc);
-	if (rc>0) {
-	/*	if (size > 256)
+//	paxos_log_debug("Buffer: %d", sizeof(buffer));
+	if (rc > 0) {
+		if (size > 0)
 		{
-			for (int i = 0; i < 128; i++) paxos_log_debug("offset %d value %x", i, buffer[i]);
+			for (int i = 0; i < size; i++)
+			{
+		//		paxos_log_debug("offset %d value 0x%2x", i, (0xff)&((unsigned int)buffer[i]));
+			}
 		}
-		*/
-
-		paxos_log_debug("Size: %d", size);
+		paxos_log_debug("Size: %d offset", size, offset);
 		msgpack_unpack_paxos_message(&msg.data, out); // Unpack the message into the provided paxos_message structure
 		evbuffer_drain(in, offset); // Remove the consumed data from the input buffer
 		rv = 1;
 
 	}
-	else if (rc==0)
+	else if (rc == 0)
 	{
 		paxos_log_debug("No data in buffer");
+		if (size > 0)
+		{
+			for (int i = 0; i < size; i++)
+			{
+		//		paxos_log_debug("offset %d value 0x%2x", i, (0xff) & ((unsigned int)buffer[i]));
+			}
+		}
+		paxos_log_debug("Size: %d offset", size, offset);
+
 	}
 	else
 	{
 		paxos_log_debug("Error in the buffer,rc= %d size: %d, draining buffer" ,rc, size);
-		evbuffer_drain(in, 2*1024*1024);
+		evbuffer_drain(in, 2 * 1024 * 1024);
 	}
 	paxos_log_debug("Finishing unpack.");
 	msgpack_unpacked_destroy(&msg);  // Clean up the unpacked message structure
