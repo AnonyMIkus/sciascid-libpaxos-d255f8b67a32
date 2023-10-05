@@ -262,7 +262,7 @@ int evpaxos_acceptor_listen_port(struct evpaxos_config* config, int i)
 static char* strtrim(char* string)
 {
 	char *s, *t;
-	for (s = string; isspace(*s); s++) // Empty for loop?
+	for (s = string; isspace(*s); s++) // Move empty spaces.
 		;
 
 	if (*s == 0)

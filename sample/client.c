@@ -343,7 +343,7 @@ static void start_client(const char* config, int proposer_id, int outstanding, i
 	event_base_dispatch(client->base);
 	client_free(client);
 }
-14
+
 /**
  * This function prints usage information and command-line options for the client application.
  *
