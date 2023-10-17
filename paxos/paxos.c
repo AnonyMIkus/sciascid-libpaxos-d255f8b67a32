@@ -50,12 +50,24 @@ struct paxos_config paxos_config =
 	.lmdb_mapsize = 1024*1024
 };
 
-
+/**
+ * Calculate the quorum size for the Paxos algorithm based on the number of acceptors.
+ *
+ * @param acceptors The number of acceptors in the Paxos system.
+ * @return The quorum size required for consensus.
+ */
 int paxos_quorum(int acceptors)
 {
 	return (acceptors/2)+1;
 }
 
+/**
+ * Create a new Paxos value with the given data and size.
+ *
+ * @param value The data for the Paxos value.
+ * @param size The size of the data.
+ * @return A pointer to the new Paxos value.
+ */
 paxos_value* paxos_value_new(const char* value, size_t size)
 {
 	paxos_value* v;
@@ -66,18 +78,33 @@ paxos_value* paxos_value_new(const char* value, size_t size)
 	return v;
 }
 
+/**
+ * Free the memory allocated for a Paxos value.
+ *
+ * @param v The Paxos value to free.
+ */
 void paxos_value_free(paxos_value* v)
 {
 	free(v->paxos_value_val);
 	free(v);
 }
 
+/**
+ * Destroy a Paxos value, freeing its memory, and set its length to 0.
+ *
+ * @param v The Paxos value to destroy.
+ */
 static void paxos_value_destroy(paxos_value* v)
 {
 	if (v->paxos_value_len > 0)
 		free(v->paxos_value_val);	
 }
 
+/**
+ * Free the memory allocated for a Paxos accepted instance.
+ *
+ * @param a The Paxos accepted instance to free.
+ */
 void paxos_accepted_free(paxos_accepted* a)
 {
 	paxos_accepted_destroy(a);

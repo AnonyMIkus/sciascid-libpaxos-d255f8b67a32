@@ -25,7 +25,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
+#include "evpaxos/config.h"
 #include "paxos.h"
 #include "evpaxos.h"
 #include <stdio.h>
@@ -36,20 +36,7 @@
 #include <sys/stat.h>
 #include <arpa/inet.h>
 
-struct address
-{
-	char* addr;
-	int port;
-};
 
-struct evpaxos_config
-{
-	int proposers_count;
-	int acceptors_count;
-	struct address proposers[MAX_N_OF_PROPOSERS];
-	struct address acceptors[MAX_N_OF_PROPOSERS];
-	pthread_mutex_t* pgs;
-};
 
 enum option_type
 {
@@ -290,14 +277,23 @@ static int parse_bytes(char* str, size_t* bytes)
 	char* end;
 	errno = 0; /* To distinguish strtoll's return value 0 */
 	*bytes = strtoull(str, &end, 10);
-	if (errno != 0) return 0;
-	while (isspace(*end)) end++;
+	if (errno != 0) 
+		return 0;
+
+	while (isspace(*end))
+		end++;
+
 	if (*end != '\0') {
-		if (strcasecmp(end, "kb") == 0) *bytes *= 1024;
-		else if (strcasecmp(end, "mb") == 0) *bytes *= 1024 * 1024;
-		else if (strcasecmp(end, "gb") == 0) *bytes *= 1024 * 1024 * 1024;
-		else return 0;
+		if (strcasecmp(end, "kb") == 0) 
+			*bytes *= 1024;
+		else if (strcasecmp(end, "mb") == 0) 
+			*bytes *= 1024 * 1024;
+		else if (strcasecmp(end, "gb") == 0) 
+			*bytes *= 1024 * 1024 * 1024;
+		else 
+			return 0;
 	}
+
 	return 1;
 }
 
@@ -384,11 +380,35 @@ static int parse_address(char* str, struct address* addr)
 	int id;
 	int port;
 	char address[128];
+
 	int rv = sscanf(str, "%d %s %d", &id, address, &port);
 	printf("\nparsed %d-%s-%d", id, address, port);
 
 	if (rv == 3) {
 		address_init(addr, address, port);
+		printf("\nSuccesful parsed");
+		return 1;
+	}
+
+	printf("\nUnsuccesful parsed");
+	return 0;
+}
+
+static int parse_address_replica(char* str, struct address* addr)
+{
+	int id;
+	int port;
+	char address[128];
+	int parentid = -1;
+	int groupid = -1;
+
+	int rv = sscanf(str, "%d %s %d %d %d", &id, address, &port, &groupid, &parentid);
+	printf("\nparsed %d-%s-%d", id, address, port);
+
+	if (rv == 5) {
+		address_init(addr, address, port);
+		addr->groupid = groupid;
+		addr->parentid = parentid;
 		printf("\nSuccesful parsed");
 		return 1;
 	}
@@ -505,7 +525,7 @@ static int parse_line(struct evpaxos_config* c, char* line)
 
 		struct address* pro_addr = &c->proposers[c->proposers_count++];
 		struct address* acc_addr = &c->acceptors[c->acceptors_count++];
-		int rv = parse_address(line, pro_addr);
+		int rv = parse_address_replica(line, pro_addr);
 		address_copy(pro_addr, acc_addr);
 		return rv;
 	}
@@ -518,27 +538,33 @@ static int parse_line(struct evpaxos_config* c, char* line)
 	switch (opt->type) {
 		case option_boolean:
 			rv = parse_boolean(line, opt->value);
-			if (rv == 0) paxos_log_error("Expected 'yes' or 'no'\n");
+			if (rv == 0) 
+				paxos_log_error("Expected 'yes' or 'no'\n");
 			break;
 		case option_integer:
 			rv = parse_integer(line, opt->value);
-			if (rv == 0) paxos_log_error("Expected number\n");
+			if (rv == 0) 
+				paxos_log_error("Expected number\n");
 			break;
 		case option_string:
 			rv = parse_string(line, opt->value);
-			if (rv == 0) paxos_log_error("Expected string\n");
+			if (rv == 0) 
+				paxos_log_error("Expected string\n");
 			break;
 		case option_verbosity:
 			rv = parse_verbosity(line, opt->value);
-			if (rv == 0) paxos_log_error("Expected quiet, error, info, or debug\n");
+			if (rv == 0) 
+				paxos_log_error("Expected quiet, error, info, or debug\n");
 			break;
 		case option_backend:
 			rv = parse_backend(line, opt->value);
-			if (rv == 0) paxos_log_error("Expected memory or lmdb\n");
+			if (rv == 0) 
+				paxos_log_error("Expected memory or lmdb\n");
 			break;
 		case option_bytes:
 			rv = parse_bytes(line, opt->value);
-			if (rv == 0) paxos_log_error("Expected number of bytes.\n");
+			if (rv == 0) 
+				paxos_log_error("Expected number of bytes.\n");
 	}
 	
 	return rv;
@@ -555,6 +581,8 @@ static void address_init(struct address* a, char* addr, int port)
 {
 	a->addr = strdup(addr);
 	a->port = port;
+	a->groupid = -1;
+	a->parentid = -1;
 }
 
 /**
@@ -576,6 +604,8 @@ static void address_free(struct address* a)
 static void address_copy(struct address* src, struct address* dst)
 {
 	address_init(dst, src->addr, src->port);
+	dst->groupid = src->groupid;
+	dst->parentid = src->parentid;
 }
 
 /**

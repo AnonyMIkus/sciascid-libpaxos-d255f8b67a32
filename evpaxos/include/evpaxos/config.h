@@ -33,7 +33,24 @@
 extern "C" {
 #endif
 
-struct evpaxos_config;
+#include "../../../paxos/include/paxos.h"
+
+	struct address
+	{
+		char* addr;
+		int port;
+		int groupid;
+		int parentid;
+	};
+
+	struct evpaxos_config
+	{
+		int proposers_count;
+		int acceptors_count;
+		struct address proposers[MAX_N_OF_PROPOSERS];
+		struct address acceptors[MAX_N_OF_PROPOSERS];
+		pthread_mutex_t* pgs;
+	};
 
 struct evpaxos_config* evpaxos_config_read(const char* path);
 void evpaxos_config_free(struct evpaxos_config* config);

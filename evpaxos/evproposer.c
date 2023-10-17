@@ -252,13 +252,11 @@ struct evproposer* evproposer_init_internal(int id, struct evpaxos_config* c, st
 	p->tv.tv_usec = 0;
 	p->timeout_ev = evtimer_new(base, evproposer_check_timeouts, p);
 	event_add(p->timeout_ev, &p->tv);
-	
 	p->state = proposer_new(p->id, acceptor_count);
 	p->peers = peers;
 	
 	// Perform preexecution step using an event base timeout
 	event_base_once(base, 0, EV_TIMEOUT, evproposer_preexec_once, p, NULL);
-
 	return p;
 }
 
@@ -284,7 +282,7 @@ struct evproposer* evproposer_init(int id, const char* config_file, struct event
 	}
 	
 	struct peers* peers = peers_new(base, config);
-	peers_connect_to_acceptors(peers);
+	peers_connect_to_acceptors(peers, 0);
 	int port = evpaxos_proposer_listen_port(config, id);
 	int rv = peers_listen(peers, port);
 
@@ -303,9 +301,9 @@ struct evproposer* evproposer_init(int id, const char* config_file, struct event
  */
 void evproposer_free_internal(struct evproposer* p)
 {
-	event_free(p->timeout_ev);
-	proposer_free(p->state);
-	free(p);
+	if (p != NULL) event_free(p->timeout_ev);
+	if (p != NULL) proposer_free(p->state);
+	if (p != NULL) free(p);
 }
 
 /**
@@ -315,8 +313,8 @@ void evproposer_free_internal(struct evproposer* p)
  */
 void evproposer_free(struct evproposer* p)
 {
-	peers_free(p->peers);
-	evproposer_free_internal(p);
+	if (p != NULL) peers_free(p->peers);
+	if (p != NULL) evproposer_free_internal(p);
 }
 
 /**
@@ -327,5 +325,6 @@ void evproposer_free(struct evproposer* p)
  */
 void evproposer_set_instance_id(struct evproposer* p, unsigned iid)
 {
+	if(p!=NULL)
 	proposer_set_instance_id(p->state, iid);
 }

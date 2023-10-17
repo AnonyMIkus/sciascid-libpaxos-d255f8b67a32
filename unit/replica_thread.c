@@ -52,9 +52,7 @@ replica_thread_run(void* arg)
 	return NULL;
 }
 
-void
-replica_thread_create(struct replica_thread* self, int id, const char* config, 
-	int delivery_count)
+void replica_thread_create(struct replica_thread* self, int id, const char* config, int delivery_count)
 {
 	self->delivery_count = delivery_count;
 	self->delivery_values = calloc(delivery_count, sizeof(int));

@@ -165,7 +165,7 @@ int proposer_receive_promise(struct proposer* p, paxos_promise* ack,
 			paxos_log_debug("Instance %u preempted: ballot %d ack ballot %d",
 			inst->iid, inst->ballot, ack->ballots[ii]);
 			proposer_preempt(p, inst, out);
-	//		return 1;
+			// return 1;
 			rc = 1;
 			continue;
 		}
@@ -184,8 +184,7 @@ int proposer_receive_promise(struct proposer* p, paxos_promise* ack,
 				if (instance_has_promised_value(inst))
 					paxos_value_free(inst->promised_value);
 				inst->value_ballot = ack->value_ballots[ii];
-				inst->promised_value = paxos_value_new(ack->values[ii].paxos_value_val,
-					ack->values[ii].paxos_value_len);
+				inst->promised_value = paxos_value_new(ack->values[ii].paxos_value_val, ack->values[ii].paxos_value_len);
 				paxos_log_debug("Value in promise saved, removed older value");
 			} else
 				paxos_log_debug("Value in promise ignored");
@@ -216,6 +215,7 @@ int proposer_accept(struct proposer* p, paxos_accept* out)
 	// Is there a value to accept?
 	if (!instance_has_value(inst))
 		inst->value = carray_pop_front(p->values);
+
 	if (!instance_has_value(inst) && !instance_has_promised_value(inst)) {
 		paxos_log_debug("Proposer: No value to accept");
 		return 0;
@@ -224,7 +224,6 @@ int proposer_accept(struct proposer* p, paxos_accept* out)
 	// We have both a prepared instance and a value
 	proposer_move_instance(p->prepare_instances, p->accept_instances, inst);
 	instance_to_accept(inst, out);
-
 	return 1;
 }
 
@@ -248,12 +247,14 @@ int proposer_receive_accepted(struct proposer* p, paxos_accepted* ack)
 		
 		if (quorum_reached(&inst->quorum)) {
 			paxos_log_debug("Proposer: Quorum reached for instance %u", inst->iid);
+
 			if (instance_has_promised_value(inst)) {
 				if (inst->value != NULL && paxos_value_cmp(inst->value, inst->promised_value) != 0) {
 					carray_push_back(p->values, inst->value);
 					inst->value = NULL;
 				}
 			}
+
 			kh_del_instance(p->accept_instances, k);
 			instance_free(inst);
 		}
@@ -264,8 +265,7 @@ int proposer_receive_accepted(struct proposer* p, paxos_accepted* ack)
 	}
 }
 
-int proposer_receive_preempted(struct proposer* p, paxos_preempted* ack,
-	paxos_prepare* out)
+int proposer_receive_preempted(struct proposer* p, paxos_preempted* ack, paxos_prepare* out)
 {
 	khiter_t k = kh_get_instance(p->accept_instances, ack->iid);
 	
@@ -277,10 +277,11 @@ int proposer_receive_preempted(struct proposer* p, paxos_preempted* ack,
 	struct instance* inst = kh_value(p->accept_instances, k);
 	
 	if (ack->ballot > inst->ballot) {
-		paxos_log_debug("Instance %u preempted: ballot %d ack ballot %d",
-			inst->iid, inst->ballot, ack->ballot);
+		paxos_log_debug("Instance %u preempted: ballot %d ack ballot %d", inst->iid, inst->ballot, ack->ballot);
+
 		if (instance_has_promised_value(inst))
 			paxos_value_free(inst->promised_value);
+
 		proposer_move_instance(p->accept_instances, p->prepare_instances, inst);
 		proposer_preempt(p, inst, out);
 		return  1; 
@@ -313,12 +314,16 @@ static struct instance* next_timedout(khash_t(instance)* h, khiter_t* k, struct 
 	for (; *k != kh_end(h); ++(*k)) {
 		if (!kh_exist(h, *k))
 			continue;
+
 		struct instance* inst = kh_value(h, *k);
+
 		if (quorum_reached(&inst->quorum))
 			continue;
+
 		if (instance_has_timedout(inst, t)) 
 			return inst;
 	}
+
 	return NULL;
 }
 
@@ -327,8 +332,10 @@ int timeout_iterator_prepare(struct timeout_iterator* iter, paxos_prepare* out)
 	struct instance* inst;
 	struct proposer* p = iter->proposer;
 	inst = next_timedout(p->prepare_instances, &iter->pi, &iter->timeout);
+
 	if (inst == NULL)
 		return 0;
+
 	*out = (paxos_prepare){inst->iid, inst->ballot};
 	inst->created_at = iter->timeout;
 	return 1;
@@ -339,8 +346,10 @@ int timeout_iterator_accept(struct timeout_iterator* iter, paxos_accept* out)
 	struct instance* inst;
 	struct proposer* p = iter->proposer;
 	inst = next_timedout(p->accept_instances, &iter->ai, &iter->timeout);
+
 	if (inst == NULL)
 		return 0;
+
 	instance_to_accept(inst, out);
 	inst->created_at = iter->timeout;
 	return 1;
@@ -369,8 +378,7 @@ static void proposer_preempt(struct proposer* p, struct instance* inst, paxos_pr
 	gettimeofday(&inst->created_at, NULL);
 }
 
-static void proposer_move_instance(khash_t(instance)* f, khash_t(instance)* t,
-	struct instance* inst)
+static void proposer_move_instance(khash_t(instance)* f, khash_t(instance)* t, struct instance* inst)
 {
 	int rv;
 	khiter_t k;

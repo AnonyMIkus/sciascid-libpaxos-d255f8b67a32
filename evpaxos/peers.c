@@ -107,6 +107,7 @@ struct peers* peers_new(struct event_base* base, struct evpaxos_config* config)
 	p->listener = NULL;
 	p->base = base;
 	p->config = config;
+	//p->subs[(config->acceptors_count + config->proposers_count)];
 	return p;
 }
 
@@ -122,8 +123,10 @@ void peers_free(struct peers* p)
 {
 	free_all_peers(p->peers, p->peers_count);
 	free_all_peers(p->clients, p->clients_count);
+
 	if (p->listener != NULL)
 		evconnlistener_free(p->listener);
+
 	free(p);
 }
 
@@ -157,7 +160,6 @@ static void peers_connect(struct peers* p, int id, struct sockaddr_in* addr)
 	paxos_log_debug("initializing peer");
 	p->peers[p->peers_count] = make_peer(p, id, addr);
 	paxos_log_debug("peer initialized");
-
 	struct peer* peer = p->peers[p->peers_count];
 	bufferevent_setcb(peer->bev, on_read, NULL, on_peer_event, peer);
 	peer->reconnect_ev = evtimer_new(p->base, on_connection_timeout, peer);
@@ -173,14 +175,47 @@ static void peers_connect(struct peers* p, int id, struct sockaddr_in* addr)
  *
  * @param p A pointer to the peers structure.
  */
-void peers_connect_to_acceptors(struct peers* p)
+void peers_connect_to_acceptors(struct peers* p, int replica_id)
 {
 	int i;
 	for (i = 0; i < evpaxos_acceptor_count(p->config); i++) {
 		paxos_log_debug("Conntect to acceptor address.");
 		struct sockaddr_in addr = evpaxos_acceptor_address(p->config, i);
-		peers_connect(p, i, &addr);
-		paxos_log_debug("Connected");
+
+		if (p->config->acceptors[i].groupid == p->config->acceptors[replica_id].groupid)
+		{
+			peers_connect(p, i, &addr);
+			paxos_log_debug("Connected, case 1");
+		}
+		else if (
+			(p->config->acceptors[replica_id].groupid != p->config->acceptors[replica_id].parentid)
+			&&
+			(p->config->acceptors[i].groupid == p->config->acceptors[replica_id].parentid)
+			) 
+		{
+			peers_connect(p, i, &addr);
+			paxos_log_debug("Connected, case 2");
+		}
+		else if (
+			(p->config->acceptors[replica_id].groupid != p->config->acceptors[replica_id].parentid)
+			&&
+			(p->config->acceptors[i].groupid != p->config->acceptors[i].parentid)
+			&&
+			(p->config->acceptors[i].parentid == p->config->acceptors[replica_id].parentid)
+			)
+		{
+			peers_connect(p, i, &addr);
+			paxos_log_debug("Connected, case 3");
+		}
+		else if (
+			(p->config->acceptors[i].groupid != p->config->acceptors[i].parentid)
+			&&
+			(p->config->acceptors[i].parentid == p->config->acceptors[replica_id].groupid)
+			)
+		{
+			peers_connect(p, i, &addr);
+			paxos_log_debug("Connected, case 4");
+		}
 	}
 }
 
@@ -275,10 +310,7 @@ int peer_connected(struct peer* p)
 int peers_listen(struct peers* p, int port)
 {
 	struct sockaddr_in addr;
-	unsigned flags = LEV_OPT_CLOSE_ON_EXEC
-		| LEV_OPT_CLOSE_ON_FREE
-		| LEV_OPT_REUSEABLE
-	    | LEV_OPT_THREADSAFE;
+	unsigned flags = LEV_OPT_CLOSE_ON_EXEC | LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE | LEV_OPT_THREADSAFE;
 
 	/* listen on the given port at address 0.0.0.0 */
 	memset(&addr, 0, sizeof(struct sockaddr_in));
@@ -450,8 +482,6 @@ static void on_client_event(struct bufferevent* bev, short ev, void* arg)
 }
 
 /**
- * Callback for Connection Timeout
- *
  * Handles the case when a connection attempt to a peer times out.
  *
  * @param fd The file descriptor associated with the connection attempt.
@@ -465,8 +495,6 @@ static void on_connection_timeout(int fd, short ev, void* arg)
 
 
 /**
- * Callback for Listener Error
- *
  * Handles errors occurring on the listener and initiates shutting down the event loop.
  *
  * @param l A pointer to the evconnlistener structure.
@@ -488,8 +516,6 @@ static void on_listener_error(struct evconnlistener* l, void* arg)
 }
 
 /**
- * Callback for Accepting Connections
- *
  * Handles the event of accepting an incoming connection from a client.
  *
  * @param l A pointer to the evconnlistener structure.
@@ -498,8 +524,7 @@ static void on_listener_error(struct evconnlistener* l, void* arg)
  * @param socklen The length of the sockaddr structure.
  * @param arg A pointer to the peers structure.
  */
-static void on_accept(struct evconnlistener* l, evutil_socket_t fd,
-	struct sockaddr* addr, int socklen, void* arg)
+static void on_accept(struct evconnlistener* l, evutil_socket_t fd, struct sockaddr* addr, int socklen, void* arg)
 {
 	struct peer* peer;
 	struct peers* peers = arg;
@@ -508,8 +533,7 @@ static void on_accept(struct evconnlistener* l, evutil_socket_t fd,
 	if(pgs!=NULL) pthread_mutex_lock(pgs);
 	peers->clients = realloc(peers->clients,
 		sizeof(struct peer*) * (peers->clients_count + 1));
-	peers->clients[peers->clients_count] =
-		make_peer(peers, peers->clients_count, (struct sockaddr_in*)addr);
+	peers->clients[peers->clients_count] = make_peer(peers, peers->clients_count, (struct sockaddr_in*)addr);
 
 	peer = peers->clients[peers->clients_count];
 	bufferevent_setfd(peer->bev, fd);

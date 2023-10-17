@@ -97,10 +97,12 @@ struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config,
 static void evpaxos_replica_deliver(unsigned iid, char* value, size_t size, void* arg)
 {
 	struct evpaxos_replica* r = arg;
+	paxos_log_debug("In replica learner callback with proposer %lx",(unsigned long)(r->proposer));
 	evproposer_set_instance_id(r->proposer, iid);
-
+	paxos_log_debug("In replica learner callback proposer instance set");
 	if (r->deliver)
 		r->deliver(iid, value, size, r->arg);
+	paxos_log_debug("Out replica learner callback");
 }
 
 /**
@@ -114,11 +116,14 @@ static void evpaxos_replica_deliver(unsigned iid, char* value, size_t size, void
 void* evpaxos_replica_init_thread_start(void* inp)
 {
 	paxos_log_debug("In New thread");
-	struct evpaxos_parms* p = (struct evpaxos_parms*)inp;
+	struct evpaxos_parms* p = (struct evpaxos_parms*) inp;
 	paxos_log_debug("Entering replica init");
 	struct evpaxos_replica* r = evpaxos_replica_init(p->id, p->config, p->f, p->arg, p->base);
 	paxos_log_debug("Exiting replica init");
-	if (r == NULL)	return NULL;
+
+	if (r == NULL)
+		return NULL;
+
 	pthread_mutex_lock(p->tsync);
 	paxos_log_debug("Locked sync, exiting");
 	pthread_mutex_destroy(p->tsync);	
@@ -180,11 +185,21 @@ struct evpaxos_replica* evpaxos_replica_init(int id, struct evpaxos_config* c, d
 	paxos_log_debug("Initializing peers");
 	r->peers = peers_new(base, config);
 	paxos_log_debug("Connecting to acceptors");
-	peers_connect_to_acceptors(r->peers);
+	peers_connect_to_acceptors(r->peers, id);
 	paxos_log_debug("Init own acceptor");
 	r->acceptor = evacceptor_init_internal(id, config, r->peers);
-	paxos_log_debug("Init own proposer");
-	r->proposer = evproposer_init_internal(id, config, r->peers);
+	
+	if ((config->acceptors[id].parentid) <= 0 && (config->acceptors[id].groupid == config->acceptors[id].parentid))
+	{
+		paxos_log_debug("Init own proposer");
+		r->proposer = evproposer_init_internal(id, config, r->peers);
+	}
+	else
+	{
+		r->proposer = NULL;
+		paxos_log_debug("Proposer have not initialized.");
+	}
+
 	paxos_log_debug("Init own learner");
 	r->learner  = evlearner_init_internal(config, r->peers, evpaxos_replica_deliver, r);
 	r->deliver = f;

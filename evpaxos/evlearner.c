@@ -76,6 +76,7 @@ static void evlearner_check_holes(evutil_socket_t fd, short event, void *arg)
 	if (learner_has_holes(l->state, &msg.from, &msg.to)) {
 		if ((msg.to - msg.from) > chunks)
 			msg.to = msg.from + chunks;
+
 		peers_foreach_acceptor(l->acceptors, peer_send_repeat, &msg);
 	}
 
@@ -94,9 +95,12 @@ static void evlearner_deliver_next_closed(struct evlearner* l)
 	memset(&deliver, 0, sizeof(paxos_accepted));
 
 	while (learner_deliver_next(l->state, &deliver)) {
+		paxos_log_debug("learner callback");
 		l->delfun(deliver.iid, deliver.values[0].paxos_value_val, deliver.values[0].paxos_value_len, l->delarg);
+		paxos_log_debug("learner destroy after callback");
 		paxos_accepted_destroy(&deliver);
 		memset(&deliver, 0, sizeof(paxos_accepted));
+		paxos_log_debug("learner to the next");
 	}
 }
 
@@ -173,7 +177,7 @@ struct evlearner* evlearner_init(const char* config_file, deliver_function f, vo
 		return NULL;
 
 	struct peers* peers = peers_new(b, c);
-	peers_connect_to_acceptors(peers);
+	peers_connect_to_acceptors(peers, 0);
 	struct evlearner* l = evlearner_init_internal(c, peers, f, arg);
 	evpaxos_config_free(c);
 	return l;
