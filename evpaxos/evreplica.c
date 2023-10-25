@@ -97,7 +97,7 @@ struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config,
 static void evpaxos_replica_deliver(unsigned iid, char* value, size_t size, void* arg)
 {
 	struct evpaxos_replica* r = arg;
-	paxos_log_debug("In replica learner callback with proposer %lx",(unsigned long)(r->proposer));
+	paxos_log_debug("In replica learner callback with proposer %lx", (unsigned long) (r->proposer));
 	evproposer_set_instance_id(r->proposer, iid);
 	paxos_log_debug("In replica learner callback proposer instance set");
 	if (r->deliver)

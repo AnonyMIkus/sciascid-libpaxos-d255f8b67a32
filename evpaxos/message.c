@@ -176,7 +176,6 @@ void send_paxos_preempted(struct bufferevent* bev, paxos_preempted* p)
 		.u.preempted = *p };
 	memcpy(&(msg.msg_info[0]), "PREE", 4);
 	send_paxos_message(bev, &msg);
-	//bev_opt_defer_callback();
 	paxos_log_debug("Send preempted for inst %d ballot %d", p->iid, p->ballot);
 }
 
@@ -263,9 +262,9 @@ int recv_paxos_message(struct evbuffer* in, paxos_message* out)
 				sprintf(&(bf[strlen(bf)]), "\n%d:", i * 16);
 				for (int j = 0; j + i * 16 < size && j < 16; j++)
 				{
-					sprintf(&(bf[strlen(bf)]), "0x%2x.", (0xff) & ((unsigned int)buffer[i*16+j]));
+					// sprintf(&(bf[strlen(bf)]), "0x%2x.", (0xff) & ((unsigned int)buffer[i*16+j]));
 				}
-				paxos_log_debug(bf);
+				// paxos_log_debug(bf);
 			}
 		}
 		paxos_log_debug("Size: %d offset", size, offset);
@@ -281,7 +280,7 @@ int recv_paxos_message(struct evbuffer* in, paxos_message* out)
 		{
 			for (int i = 0; i < size; i++)
 			{
-				 paxos_log_debug("offset %d value 0x%2x", i, (0xff) & ((unsigned int) buffer[i]));
+		//		 paxos_log_debug("offset %d value 0x%2x", i, (0xff) & ((unsigned int) buffer[i]));
 			}
 		}
 		paxos_log_debug("Size: %d offset", size, offset);

@@ -70,7 +70,7 @@ typedef struct paxos_accept paxos_accept;
 
 struct paxos_accepted
 {
-	uint32_t aid_0;
+	uint32_t src;
 	uint32_t iid;
 	uint32_t ballot_0;
 	uint32_t value_ballot_0;

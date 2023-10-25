@@ -248,8 +248,3 @@ void evlearner_send_trim(struct evlearner* l, unsigned iid)
 	paxos_trim trim = {iid};
 	peers_foreach_acceptor(l->acceptors, peer_send_trim, &trim);
 }
-
-void evlearner_get_quorum()
-{
-
-}

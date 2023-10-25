@@ -66,6 +66,7 @@ struct peers
 	struct event_base* base;
 	struct evpaxos_config* config;
 	int subs_count;
+	int ownid;
 	struct subscription subs[32];
 };
 
@@ -107,6 +108,7 @@ struct peers* peers_new(struct event_base* base, struct evpaxos_config* config)
 	p->listener = NULL;
 	p->base = base;
 	p->config = config;
+	p->ownid = -1;
 	//p->subs[(config->acceptors_count + config->proposers_count)];
 	return p;
 }
@@ -177,6 +179,7 @@ static void peers_connect(struct peers* p, int id, struct sockaddr_in* addr)
  */
 void peers_connect_to_acceptors(struct peers* p, int replica_id)
 {
+	p->ownid = replica_id;
 	int i;
 	for (i = 0; i < evpaxos_acceptor_count(p->config); i++) {
 		paxos_log_debug("Conntect to acceptor address.");
@@ -247,6 +250,25 @@ void peers_foreach_client(struct peers* p, peer_iter_cb cb, void* arg)
 		cb(p->clients[i], arg);
 }
 
+void peers_foreach_down_acceptor(struct peers* p, peer_iter_cb cb, void* arg)
+{
+	if(p->config->acceptors[p->ownid].groupid==p->config->acceptors[p->ownid].parentid) return;
+
+	for(int i = 0; i < p->peers_count; i++)
+	{
+
+			if (
+				( (p->config->acceptors[p->ownid].groupid == p->config->acceptors[i].groupid) && (p->config->acceptors[p->ownid].groupid != p->config->acceptors[i].parentid))
+				|| 
+				( (p->config->acceptors[p->ownid].groupid == p->config->acceptors[i].parentid) && (p->config->acceptors[i].groupid != p->config->acceptors[i].parentid) )
+			   )
+			{
+				cb(p->peers[i], arg);
+				paxos_log_debug("CALLBACK ALL ACCEPTOR IN GROUP AND BELOW");
+			}
+	}
+}
+
 /**
  * Retrieves the peer associated with the provided ID from the peers structure.
  *
@@ -261,6 +283,11 @@ struct peer* peers_get_acceptor(struct peers* p, int id)
 		if (p->peers[i]->id == id)
 			return p->peers[i];
 	return NULL;
+}
+
+struct peer* peer_get_acceptor(struct peer* p, int id)
+{
+	return peers_get_acceptor(p->peers, id);
 }
 
 /**
@@ -446,6 +473,9 @@ static void on_peer_event(struct bufferevent* bev, short ev, void* arg)
 	else {
 		paxos_log_error("Event %d not handled", ev);
 	}
+
+	paxos_log_debug("Replica %d ---> Status: %d", p->id, p->status);
+
 	if (pgs != NULL) pthread_mutex_unlock(pgs);
 }
 

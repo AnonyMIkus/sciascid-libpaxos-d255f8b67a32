@@ -17,8 +17,10 @@ struct evdelegator {
 	struct quorum* sub_quorum;
 };
 
-struct evdelegator* evdelegator_init(int given_id) {}
+struct evdelegator* evdelegator_init(int given_id, int groupid) {}
 
 void add_to_group(struct evacceptor* add) {}
 
 void del_from_group(struct evacceptor* add) {}
+
+void relegate_data() {}

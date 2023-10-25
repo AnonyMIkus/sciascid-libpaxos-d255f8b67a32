@@ -124,6 +124,13 @@ static void evproposer_handle_promise(struct peer* p, paxos_message* msg, void* 
 	try_accept(proposer);
 }
 
+/**
+ * Handles the accepted message received from an acceptor.
+ *
+ * @param p Pointer to the peer structure.
+ * @param msg Pointer to the paxos_message received.
+ * @param arg Pointer to the evproposer structure.
+ */
 static void evproposer_handle_accepted(struct peer* p, paxos_message* msg, void* arg)
 {
 	struct evproposer* proposer = arg;
@@ -133,11 +140,11 @@ static void evproposer_handle_accepted(struct peer* p, paxos_message* msg, void*
 }
 
 /**
- * Handles the accepted message received from an acceptor.
+ * Handle a preempted message received by an event proposer.
  *
- * @param p Pointer to the peer structure.
- * @param msg Pointer to the paxos_message received.
- * @param arg Pointer to the evproposer structure.
+ * @param p A pointer to the peer from which the message was received.
+ * @param msg A pointer to the Paxos message received.
+ * @param arg A pointer to the event proposer associated with this handler.
  */
 static void evproposer_handle_preempted(struct peer* p, paxos_message* msg, void* arg)
 {
@@ -152,11 +159,11 @@ static void evproposer_handle_preempted(struct peer* p, paxos_message* msg, void
 }
 
 /**
- * Handles the client_value message received from an acceptor.
+ * Handle a client value message received by an event proposer.
  *
- * @param p Pointer to the peer structure.
- * @param msg Pointer to the paxos_message received.
- * @param arg Pointer to the evproposer structure.
+ * @param p A pointer to the peer from which the message was received.
+ * @param msg A pointer to the Paxos message received.
+ * @param arg A pointer to the event proposer associated with this handler.
  */
 static void evproposer_handle_client_value(struct peer* p, paxos_message* msg, void* arg)
 {
