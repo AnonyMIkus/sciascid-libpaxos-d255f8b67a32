@@ -226,7 +226,7 @@ static void on_connect(struct bufferevent* bev, short events, void* arg)
 	struct client* c = arg;
 
 	if (events & BEV_EVENT_CONNECTED) {
-		printf("Connected to proposer\n");
+		paxos_log_debug("Connected to proposer\n");
 		for (i = 0; i < c->outstanding; ++i)
 			client_submit_value(c);
 	} else {
@@ -376,7 +376,7 @@ int main(int argc, char const *argv[])
 		i++;
 	}
 
-	sleep(60);
+	// sleep(30);
 
 	//Iterating through all parameters in prompt.
 	while (i != argc) {

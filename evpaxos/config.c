@@ -140,7 +140,7 @@ struct evpaxos_config* evpaxos_config_read(const char* path)
 		linenumber++;
 	}
 
-	printf("Finish readig conf.\n");
+	// printf("Finish readig conf.\n");
 	fclose(f);
 	return c;
 
@@ -382,15 +382,15 @@ static int parse_address(char* str, struct address* addr)
 	char address[128];
 
 	int rv = sscanf(str, "%d %s %d", &id, address, &port);
-	printf("\nparsed %d-%s-%d", id, address, port);
+	// paxos_log_debug("parsed %d-%s-%d", id, address, port);
 
 	if (rv == 3) {
 		address_init(addr, address, port);
-		printf("\nSuccesful parsed");
+		// paxos_log_debug("Succesful parsed");
 		return 1;
 	}
 
-	printf("\nUnsuccesful parsed");
+	// paxos_log_debug("Unsuccesful parsed");
 	return 0;
 }
 
@@ -403,17 +403,17 @@ static int parse_address_replica(char* str, struct address* addr)
 	int groupid = -1;
 
 	int rv = sscanf(str, "%d %s %d %d %d", &id, address, &port, &groupid, &parentid);
-	printf("\nparsed %d-%s-%d", id, address, port);
+	// paxos_log_debug("\nparsed %d-%s-%d", id, address, port);
 
 	if (rv == 5) {
 		address_init(addr, address, port);
 		addr->groupid = groupid;
 		addr->parentid = parentid;
-		printf("\nSuccesful parsed");
+		// paxos_log_debug("\nSuccesful parsed");
 		return 1;
 	}
 
-	printf("\nUnsuccesful parsed");
+	// paxos_log_debug("\nUnsuccesful parsed");
 	return 0;
 }
 

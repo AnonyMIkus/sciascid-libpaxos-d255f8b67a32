@@ -98,12 +98,17 @@ int acceptor_receive_prepare(int isrc,struct acceptor* a, paxos_prepare* req, pa
 {
 	paxos_accepted acc;
 	memset(&acc, 0, sizeof(acc));
+
 	if (req->iid <= a->trim_iid)
 		return 0;
+
 	memset(&acc, 0, sizeof(paxos_accepted));
+
 	if (storage_tx_begin(&a->store) != 0)
 		return 0;
+
 	int found = storage_get_record(&a->store, req->iid, &acc); // Search for exisiting entry. One entry is enough.
+
 	if (!found || acc.ballots[0] <= req->ballot) {
 		paxos_log_debug("Preparing iid: %u, ballot: %u", req->iid, req->ballot);
 		acc.src = isrc;
@@ -123,8 +128,10 @@ int acceptor_receive_prepare(int isrc,struct acceptor* a, paxos_prepare* req, pa
 			return 0;
 		}
 	}
+
 	if (storage_tx_commit(&a->store) != 0)
 		return 0;
+
 	paxos_accepted_to_promise(&acc, out);
 	return 1;
 }
@@ -141,15 +148,21 @@ int acceptor_receive_prepare(int isrc,struct acceptor* a, paxos_prepare* req, pa
 int acceptor_receive_accept(struct acceptor* a, paxos_accept* req, paxos_message* out)
 {
 	paxos_accepted acc;
+
 	if (req->iid <= a->trim_iid)
 		return 0;
+
 	memset(&acc, 0, sizeof(paxos_accepted));
+
 	if (storage_tx_begin(&a->store) != 0)
 		return 0;
+
 	int found = storage_get_record(&a->store, req->iid, &acc);
+
 	if (!found || acc.ballots[0] <= req->ballot) {
 		paxos_log_debug("Accepting iid: %u, ballot: %u", req->iid, req->ballot);
 		paxos_accept_to_accepted(a->id, req, out);
+
 		if (storage_put_record(&a->store, &(out->u.accepted)) != 0) {
 			storage_tx_abort(&a->store);
 			return 0;
@@ -157,8 +170,10 @@ int acceptor_receive_accept(struct acceptor* a, paxos_accept* req, paxos_message
 	} else {
 		paxos_accepted_to_preempted(a->id, &acc, out);
 	}
+
 	if (storage_tx_commit(&a->store) != 0)
 		return 0;
+
 	paxos_accepted_destroy(&acc);
 	return 1;
 }
@@ -175,11 +190,22 @@ int acceptor_receive_accept(struct acceptor* a, paxos_accept* req, paxos_message
 int acceptor_receive_repeat(struct acceptor* a, iid_t iid, paxos_accepted* out)
 {
 	memset(out, 0, sizeof(paxos_accepted));
+	//paxos_log_debug("out zeroed");
+
 	if (storage_tx_begin(&a->store) != 0)
 		return 0;
+
+	//paxos_log_debug("tx begin");
 	int found = storage_get_record(&a->store, iid, out);
+	//paxos_log_debug("Got record with rc %d ",found);
+
 	if (storage_tx_commit(&a->store) != 0)
 		return 0;
+
+	//paxos_log_debug("tx commit");
+	if (out->values == NULL) return 0;
+	//paxos_log_debug("values not null");
+
 	return found && (out->values[0].paxos_value_len > 0);
 }
 
@@ -267,7 +293,7 @@ static void paxos_accept_to_accepted(int id, paxos_accept* acc, paxos_message* o
 		acc->ballot,
 		1,
 		calloc(1,sizeof(uint32_t)),
-//		{value_size, value},
+		// {value_size, value},
 		{0,NULL},
 		calloc(1,sizeof(paxos_value)),
 		calloc(1,sizeof(uint32_t)),
@@ -291,7 +317,9 @@ static void paxos_accept_to_accepted(int id, paxos_accept* acc, paxos_message* o
 static void paxos_accepted_to_preempted(int id, paxos_accepted* acc, paxos_message* out)
 {
 	out->type = PAXOS_PREEMPTED;
-	out->u.preempted = (paxos_preempted) { id, acc->iid, acc->ballots[0]};
+	out->u.preempted = (paxos_preempted) { 
+		id, acc->iid, acc->ballots[0]
+	};
 }
 
 int get_srcid_promise(paxos_promise* pr, struct acceptor* a)
@@ -299,13 +327,18 @@ int get_srcid_promise(paxos_promise* pr, struct acceptor* a)
 	int ret = -1;
 	paxos_accepted acc;
 	memset(&acc, 0, sizeof(paxos_accepted));
-	if (storage_tx_begin(&a->store) != 0) 	return -1;
+
+	if (storage_tx_begin(&a->store) != 0)
+		return -1;
+
 	int found = storage_get_record(&a->store, pr->iid, &acc);
+
 	if (found)
-	{
 		ret = acc.src;
-	}
-	if (storage_tx_commit(&a->store) != 0) return -1;
+
+	if (storage_tx_commit(&a->store) != 0)
+		return -1;
+
 	return ret;
 }
 
@@ -314,12 +347,37 @@ int get_srcid_accepted(paxos_accepted* ac, struct acceptor* a)
 	int ret = -1;
 	paxos_accepted acc;
 	memset(&acc, 0, sizeof(paxos_accepted));
-	if (storage_tx_begin(&a->store) != 0) 	return -1;
+
+	if (storage_tx_begin(&a->store) != 0)
+		return -1;
+
 	int found = storage_get_record(&a->store, ac->iid, &acc);
+
 	if (found)
-	{
 		ret = acc.src;
-	}
-	if (storage_tx_commit(&a->store) != 0) return -1;
+
+	if (storage_tx_commit(&a->store) != 0)
+		return -1;
+
+	return ret;
+}
+
+int get_srcid_preempted(paxos_preempted* ac, struct acceptor* a)
+{
+	int ret = -1;
+	paxos_accepted acc;
+	memset(&acc, 0, sizeof(paxos_accepted));
+
+	if (storage_tx_begin(&a->store) != 0)
+		return -1;
+
+	int found = storage_get_record(&a->store, ac->iid, &acc);
+
+	if (found)
+		ret = acc.src;
+
+	if (storage_tx_commit(&a->store) != 0)
+		return -1;
+
 	return ret;
 }

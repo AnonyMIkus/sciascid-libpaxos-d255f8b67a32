@@ -178,7 +178,7 @@ int main(int argc, char const* argv[])
 	}
 
 	// Process should wait for following reason: Allowing to start debug.
-	sleep(30);
+	// sleep(30);
 
 	struct evpaxos_config* cfg;
 	cfg = evpaxos_config_read(config);
@@ -187,7 +187,7 @@ int main(int argc, char const* argv[])
 		return 0;
 
 	int nnodes = evpaxos_replica_nodes(cfg);
-	printf("path %s nodes %d", config, nnodes);
+	// paxos_log_debug("path %s nodes %d", config, nnodes);
 	fflush(stdout);
 
 	// Thread and Mutex

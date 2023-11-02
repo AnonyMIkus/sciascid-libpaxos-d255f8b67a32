@@ -145,7 +145,7 @@ int main(int argc, char const* argv[])
 		printf("argc length: %d\ncurrent i: %d\nconfig: %s\n", argc, i, config);
 		i++;
 	}
-	printf("\nLast segment.");
+	// paxos_log_debug("Last segment.");
 	while (i != argc) { // It checks if -h or -v are given as additional parameters. If there too many parameters or -h (independent of number of parameters) then it show how it is used.
 		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
 			usage(argv[0]);
@@ -155,8 +155,8 @@ int main(int argc, char const* argv[])
 			usage(argv[0]);
 		i++;
 	}
-	printf("\nStart Replica.");
+	// paxos_log_debug("Start Replica.");
 	start_replica(id, config); // Start process for replica.
-	printf("finished\n");
+	// paxos_log_debug("finished");
 	return 0;
 }

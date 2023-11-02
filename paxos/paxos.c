@@ -113,7 +113,7 @@ void paxos_accepted_free(paxos_accepted* a)
 
 void paxos_promise_destroy(paxos_promise* p)
 {
-	paxos_log_debug("destroying %lx in promise %lx",p->aids,p);
+	// paxos_log_debug("destroying %lx in promise %lx",p->aids,p);
 	if (p->aids != NULL) free(p -> aids); 
 	p->aids = NULL;
 	paxos_value_destroy(&p->value_0);
@@ -140,29 +140,29 @@ void paxos_accepted_destroy(paxos_accepted* p)
 	if (p->aids != NULL) free(p->aids);
 	p->aids = NULL;
 	// paxos_log_debug("destroying %lx in accepted stage 1", p);
-//	paxos_value_destroy(&p->value_0);
+	//	paxos_value_destroy(&p->value_0);
 	if (p->values != NULL)
 	{
 		// paxos_log_debug("destroying %lx in accepted stage 2 start", p);
 		for (int ii = 0; ii < p->n_aids; ii++)
 		{
-			paxos_log_debug("destroying value %lx in accepted stage 2 idx %ld", p->values[ii].paxos_value_val,ii);
+			// paxos_log_debug("destroying value %lx in accepted stage 2 idx %ld", p->values[ii].paxos_value_val,ii);
 			if (p->values[ii].paxos_value_len > 0) paxos_value_destroy(&(p->values[ii]));
-			paxos_log_debug("value destroyed for index %ld", ii);
+			//paxos_log_debug("value destroyed for index %ld", ii);
 		}
 		free(p->values);
 		p->values = NULL;
-		paxos_log_debug("destroying %lx in accepted stage 2 end", p);
+		//paxos_log_debug("destroying %lx in accepted stage 2 end", p);
 
 	}
-	paxos_log_debug("destroying %lx in accepted stage 3 start", p);
+	// paxos_log_debug("destroying %lx in accepted stage 3 start", p);
 	if (p->ballots) free(p->ballots);
 	p->ballots = NULL;
-	paxos_log_debug("destroying %lx in accepted stage 4 start", p);
+	// paxos_log_debug("destroying %lx in accepted stage 4 start", p);
 	if (p->value_ballots) free(p->value_ballots);
 	p->value_ballots = NULL;
 
-	paxos_log_debug("finished detsrying %lx in accepted %lx", p->aids, p);
+	// paxos_log_debug("finished destroying %lx in accepted %lx", p->aids, p);
 }
 
 void paxos_client_value_destroy(paxos_client_value* p)
@@ -172,7 +172,7 @@ void paxos_client_value_destroy(paxos_client_value* p)
 
 void paxos_message_destroy(paxos_message* m)
 {
-	paxos_log_debug("destroying message %lx",m);
+	// paxos_log_debug("destroying message %lx",m);
 	switch (m->type) {
 	case PAXOS_PROMISE:
 		paxos_promise_destroy(&m->u.promise);
@@ -188,7 +188,7 @@ void paxos_message_destroy(paxos_message* m)
 		break;
 	default: break;
 	}
-	paxos_log_debug("destroyed message %lx", m);
+	// paxos_log_debug("destroyed message %lx", m);
 
 }
 

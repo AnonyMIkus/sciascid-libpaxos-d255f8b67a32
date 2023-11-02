@@ -86,7 +86,7 @@ static void proposer_preexecute(struct evproposer* p)
 		peers_foreach_acceptor(p->peers, peer_send_prepare, &pr);
 	}
 
-	paxos_log_debug("Opened %d new instances", count);
+	// paxos_log_debug("Opened %d new instances", count);
 }
 
 /**
@@ -203,13 +203,13 @@ static void evproposer_check_timeouts(evutil_socket_t fd, short event, void *arg
 
 	paxos_prepare pr;	
 	while (timeout_iterator_prepare(iter, &pr)) {
-		paxos_log_info("Instance %d timed out in phase 1.", pr.iid);
+		// paxos_log_info("Instance %d timed out in phase 1.", pr.iid);
 		peers_foreach_acceptor(p->peers, peer_send_prepare, &pr);
 	}
 	
 	paxos_accept ar;
 	while (timeout_iterator_accept(iter, &ar)) {
-		paxos_log_info("Instance %d timed out in phase 2.", ar.iid);
+		// paxos_log_info("Instance %d timed out in phase 2.", ar.iid);
 		peers_foreach_acceptor(p->peers, peer_send_accept, &ar);
 	}
 	
@@ -320,8 +320,10 @@ void evproposer_free_internal(struct evproposer* p)
  */
 void evproposer_free(struct evproposer* p)
 {
-	if (p != NULL) peers_free(p->peers);
-	if (p != NULL) evproposer_free_internal(p);
+	if (p != NULL) 
+		peers_free(p->peers);
+	if (p != NULL) 
+		evproposer_free_internal(p);
 }
 
 /**
@@ -333,5 +335,5 @@ void evproposer_free(struct evproposer* p)
 void evproposer_set_instance_id(struct evproposer* p, unsigned iid)
 {
 	if(p!=NULL)
-	proposer_set_instance_id(p->state, iid);
+		proposer_set_instance_id(p->state, iid);
 }

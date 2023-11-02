@@ -97,12 +97,12 @@ struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config,
 static void evpaxos_replica_deliver(unsigned iid, char* value, size_t size, void* arg)
 {
 	struct evpaxos_replica* r = arg;
-	paxos_log_debug("In replica learner callback with proposer %lx", (unsigned long) (r->proposer));
+	// paxos_log_debug("In replica learner callback with proposer %lx", (unsigned long) (r->proposer));
 	evproposer_set_instance_id(r->proposer, iid);
-	paxos_log_debug("In replica learner callback proposer instance set");
+	// paxos_log_debug("In replica learner callback proposer instance set");
 	if (r->deliver)
 		r->deliver(iid, value, size, r->arg);
-	paxos_log_debug("Out replica learner callback");
+	// paxos_log_debug("Out replica learner callback");
 }
 
 /**
@@ -115,17 +115,17 @@ static void evpaxos_replica_deliver(unsigned iid, char* value, size_t size, void
  */
 void* evpaxos_replica_init_thread_start(void* inp)
 {
-	paxos_log_debug("In New thread");
+	// paxos_log_debug("In New thread");
 	struct evpaxos_parms* p = (struct evpaxos_parms*) inp;
-	paxos_log_debug("Entering replica init");
+	// paxos_log_debug("Entering replica init");
 	struct evpaxos_replica* r = evpaxos_replica_init(p->id, p->config, p->f, p->arg, p->base);
-	paxos_log_debug("Exiting replica init");
+	// paxos_log_debug("Exiting replica init");
 
 	if (r == NULL)
 		return NULL;
 
 	pthread_mutex_lock(p->tsync);
-	paxos_log_debug("Locked sync, exiting");
+	// paxos_log_debug("Locked sync, exiting");
 	pthread_mutex_destroy(p->tsync);	
 	evpaxos_replica_free(r);
 	pthread_exit(NULL);
@@ -143,12 +143,12 @@ void* evpaxos_replica_init_thread_start(void* inp)
  */
 int evpaxos_replica_init_thread(void* inref, void* insyncs, struct evpaxos_parms* p)
 {
-	paxos_log_debug("Start threading process ...");
+	// paxos_log_debug("Start threading process ...");
 	pthread_t* ref = (pthread_t*)inref;
 	pthread_mutex_t* syncs = (pthread_mutex_t*)insyncs;
 	p->thread = ref;
 	p->tsync = syncs;
-	paxos_log_debug("Set up mutex.");
+	// paxos_log_debug("Set up mutex.");
 	// Mutex initializing.
 	pthread_mutexattr_t attr;
 	pthread_mutexattr_init(&attr);
@@ -156,9 +156,9 @@ int evpaxos_replica_init_thread(void* inref, void* insyncs, struct evpaxos_parms
 	pthread_mutex_init(p->tsync, &attr);
 	pthread_mutexattr_destroy(&attr);
 	pthread_mutex_lock(p->tsync);
-	paxos_log_debug("Create Thread");
+	// paxos_log_debug("Create Thread");
 	int rc = pthread_create(ref, NULL, evpaxos_replica_init_thread_start, (void*) p);
-	paxos_log_debug("Create Thread finished");
+	// paxos_log_debug("Create Thread finished");
 	fflush(stdout);
 	return rc;
 }
@@ -182,11 +182,11 @@ struct evpaxos_replica* evpaxos_replica_init(int id, struct evpaxos_config* c, d
 
 	r = malloc(sizeof(struct evpaxos_replica));
 	config = c;
-	paxos_log_debug("Initializing peers");
+	// paxos_log_debug("Initializing peers");
 	r->peers = peers_new(base, config);
 	paxos_log_debug("Connecting to acceptors");
 	peers_connect_to_acceptors(r->peers, id);
-	paxos_log_debug("Init own acceptor");
+	// paxos_log_debug("Init own acceptor");
 	r->acceptor = evacceptor_init_internal(id, config, r->peers);
 	
 	if ((config->acceptors[id].parentid) <= 0 && (config->acceptors[id].groupid == config->acceptors[id].parentid))
@@ -197,26 +197,26 @@ struct evpaxos_replica* evpaxos_replica_init(int id, struct evpaxos_config* c, d
 	else
 	{
 		r->proposer = NULL;
-		paxos_log_debug("Proposer have not initialized.");
+		// paxos_log_debug("Proposer have not initialized.");
 	}
 
-	paxos_log_debug("Init own learner");
+	// paxos_log_debug("Init own learner");
 	r->learner  = evlearner_init_internal(config, r->peers, evpaxos_replica_deliver, r);
 	r->deliver = f;
 	r->arg = arg;
-	paxos_log_debug("Got id %d", id);
-	paxos_log_debug("Getting listener port");
+	// paxos_log_debug("Got id %d", id);
+	// paxos_log_debug("Getting listener port");
 	int port = evpaxos_acceptor_listen_port(config, id);
-	paxos_log_debug("Got port % d", port);
+	// paxos_log_debug("Got port % d", port);
 
 	if (peers_listen(r->peers, port) == 0) {
-		paxos_log_debug("\nListen failed");
+		// paxos_log_debug("Listen failed");
 		evpaxos_config_free(config);
 		evpaxos_replica_free(r);
 		return NULL;
 	}
 
-	paxos_log_debug("Listener started");
+	// paxos_log_debug("Listener started");
 	// evpaxos_config_free(config);
 	return r;
 }

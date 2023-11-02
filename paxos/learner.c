@@ -116,33 +116,33 @@ void learner_set_instance_id(struct learner* l, iid_t iid)
  */
 void learner_receive_accepted(struct learner* l, paxos_accepted* ack)
 {	
-	paxos_log_debug("entering paxos learner %lx", l);
+	// paxos_log_debug("entering paxos learner %lx", l);
 
 	if (l->late_start) {
 		l->late_start = 0; // Turn off late start flag
 		l->current_iid = ack->iid; // Set current instance ID
 	}
-	paxos_log_debug("learner %lx stage 1", l);
+	
+//	paxos_log_debug("learner %lx stage 1", l);
 
 	if (ack->iid < l->current_iid) {
-		paxos_log_debug("Dropped paxos_accepted for iid %u. Already delivered.",
-			ack->iid);
+		// paxos_log_debug("Dropped paxos_accepted for iid %u. Already delivered.", ack->iid);
 		return;
 	}
-	paxos_log_debug("learner %lx stage2", l);
 
+	// paxos_log_debug("learner %lx stage2", l);
 	struct instance* inst;
 	inst = learner_get_instance_or_create(l, ack->iid);
-	
 	// Update instance with accepted message
 	instance_update(inst, ack, l->acceptors);
-	paxos_log_debug("learner %lx stage3", l);
+	// paxos_log_debug("learner %lx stage3", l);
 
 	// If instance has a quorum and is not yet closed, update highest closed instance ID
 	if (instance_has_quorum(inst, l->acceptors)
 		&& (inst->iid > l->highest_iid_closed))
 		l->highest_iid_closed = inst->iid;
-	paxos_log_debug("learner %lx stage4", l);
+
+	// paxos_log_debug("learner %lx stage4", l);
 
 }
 /**
@@ -154,22 +154,21 @@ void learner_receive_accepted(struct learner* l, paxos_accepted* ack)
  */
 int learner_deliver_next(struct learner* l, paxos_accepted* out)
 {
-	paxos_log_debug("learner %lx deliever next stage1", l);
-
+	// paxos_log_debug("learner %lx deliever next stage1", l);
 	struct instance* inst = learner_get_current_instance(l);
+
 	// If no current instance or quorum is missing, cannot deliver
 	if (inst == NULL || !instance_has_quorum(inst, l->acceptors))
 		return 0;
-	// Copy the final value and mark it as delivered
-	paxos_log_debug("learner %lx deliever next stage2", l);
 
-//	memcpy(out, inst->final_value, sizeof(paxos_accepted));
-//	paxos_value_copy(&out->value, &inst->final_value->value);
+	// Copy the final value and mark it as delivered
+	// paxos_log_debug("learner %lx deliever next stage2", l);
+	//	memcpy(out, inst->final_value, sizeof(paxos_accepted));
+	//	paxos_value_copy(&out->value, &inst->final_value->value);
 	paxos_accepted_deep_copy(inst->final_value, out);
 	learner_delete_instance(l, inst);
 	l->current_iid++;
-	paxos_log_debug("learner %lx deliever next stage3", l);
-
+	// paxos_log_debug("learner %lx deliever next stage3", l);
 	return 1;
 }
 
@@ -297,23 +296,21 @@ static void instance_update(struct instance* inst, paxos_accepted* accepted, int
 {	
 	// Initialize the instance if it's the first message received for it
 	if (inst->iid == 0) {
-		paxos_log_debug("Received first message for iid: %u", accepted->iid);
+		// paxos_log_debug("Received first message for iid: %u", accepted->iid);
 		inst->iid = accepted->iid;
 		inst->last_update_ballot = accepted->ballots[0];
 	}
 	
 	// If the instance is already closed, drop the message
 	if (instance_has_quorum(inst, acceptors)) {
-		paxos_log_debug("Dropped paxos_accepted iid %u. Already closed.",
-			accepted->iid);
+		// paxos_log_debug("Dropped paxos_accepted iid %u. Already closed.", accepted->iid);
 		return;
 	}
 	
 	// Check if the received ballot is newer than the previous ballot
 	paxos_accepted* prev_accepted = inst->acks[accepted->aids[0]];
 	if (prev_accepted != NULL && prev_accepted->ballots[0] >= accepted->ballots[0]) {
-		paxos_log_debug("Dropped paxos_accepted for iid %u."
-			"Previous ballot is newer or equal.", accepted->iid);
+		// paxos_log_debug("Dropped paxos_accepted for iid %u. Previous ballot is newer or equal.", accepted->iid);
 		return;
 	}
 	
@@ -359,7 +356,7 @@ static int instance_has_quorum(struct instance* inst, int acceptors)
 
 	// Check if a quorum has been reached and set the final value if so
 	if (count >= paxos_quorum(acceptors)) {
-		paxos_log_debug("Reached quorum, iid: %u is closed!", inst->iid);
+		// paxos_log_debug("Reached quorum, iid: %u is closed!", inst->iid);
 		inst->final_value = inst->acks[a_valid_index];
 		return 1;
 	}
@@ -379,15 +376,15 @@ static int instance_has_quorum(struct instance* inst, int acceptors)
  */
 static void instance_add_accept(struct instance* inst, paxos_accepted* accepted)
 {
-	paxos_log_debug("learner %lx add accept stage1",inst );
-
+	// paxos_log_debug("learner %lx add accept stage1",inst );
 	int acceptor_id = accepted->aids[0];
+
 	if (inst->acks[acceptor_id] != NULL)
 		paxos_accepted_free(inst->acks[acceptor_id]);
+
 	inst->acks[acceptor_id] = paxos_accepted_dup(accepted);
 	inst->last_update_ballot = accepted->ballots[0];
-	paxos_log_debug("learner %lx add accept stage2", inst);
-
+	// paxos_log_debug("learner %lx add accept stage2", inst);
 }
 
 /*
@@ -402,15 +399,14 @@ static void instance_add_accept(struct instance* inst, paxos_accepted* accepted)
  */
 static paxos_accepted* paxos_accepted_dup(paxos_accepted* ack)
 {
-	paxos_log_debug("learner %lx add copy stage1", ack);
-
+	// paxos_log_debug("learner %lx add copy stage1", ack);
 	paxos_accepted* copy;
 	copy = malloc(sizeof(paxos_accepted));
 	memcpy(copy, ack, sizeof(paxos_accepted));
 //	paxos_value_copy(&copy->value, &ack->value);
 	copy->value_0.paxos_value_len = 0;
 	copy->value_0.paxos_value_val = NULL;
-	paxos_log_debug("learner %lx add copy stage2", ack);
+	// paxos_log_debug("learner %lx add copy stage2", ack);
 	if (copy->n_aids > 0)
 	{
 		if (ack->aids != NULL) copy->aids = calloc(copy->n_aids, sizeof(uint32_t)); else ack->aids = NULL;
@@ -433,13 +429,13 @@ static paxos_accepted* paxos_accepted_dup(paxos_accepted* ack)
 
 static void paxos_accepted_deep_copy(paxos_accepted* ack, paxos_accepted* copy)
 {
-	paxos_log_debug("learner %lx add copy stage1", ack);
+	// paxos_log_debug("learner %lx add copy stage1", ack);
 
 	memcpy(copy, ack, sizeof(paxos_accepted));
 	copy->value_0.paxos_value_len = 0;
 	copy->value_0.paxos_value_val = NULL;
-//	paxos_value_copy(&copy->value, &ack->value);
-	paxos_log_debug("learner %lx add copy stage2", ack);
+	// paxos_value_copy(&copy->value, &ack->value);
+	// paxos_log_debug("learner %lx add copy stage2", ack);
 	if (copy->n_aids > 0)
 	{
 		if (ack->aids != NULL) copy->aids = calloc(copy->n_aids, sizeof(uint32_t)); else ack->aids = NULL;

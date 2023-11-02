@@ -43,6 +43,7 @@ struct evlearner
 	struct event* hole_timer;   /* Timer to check for holes */
 	struct timeval tv;          /* Check for holes every tv units of time */
 	struct peers* acceptors;    /* Connections to acceptors */
+	struct evpaxos_config* c;
 };
 
 
@@ -95,12 +96,12 @@ static void evlearner_deliver_next_closed(struct evlearner* l)
 	memset(&deliver, 0, sizeof(paxos_accepted));
 
 	while (learner_deliver_next(l->state, &deliver)) {
-		paxos_log_debug("learner callback");
+		// paxos_log_debug("learner callback");
 		l->delfun(deliver.iid, deliver.values[0].paxos_value_val, deliver.values[0].paxos_value_len, l->delarg);
-		paxos_log_debug("learner destroy after callback");
+		// paxos_log_debug("learner destroy after callback");
 		paxos_accepted_destroy(&deliver);
 		memset(&deliver, 0, sizeof(paxos_accepted));
-		paxos_log_debug("learner to the next");
+		// paxos_log_debug("learner to the next");
 	}
 }
 
@@ -141,6 +142,7 @@ struct evlearner* evlearner_init_internal(struct evpaxos_config* config, struct 
 	int acceptor_count = evpaxos_acceptor_count(config);
 	struct event_base* base = peers_get_event_base(peers);
 	struct evlearner* learner = malloc(sizeof(struct evlearner));
+	learner->c = config;
 	
 	// Set up underlaying learner.
 	learner->delfun = f;
@@ -179,7 +181,7 @@ struct evlearner* evlearner_init(const char* config_file, deliver_function f, vo
 	struct peers* peers = peers_new(b, c);
 	peers_connect_to_acceptors(peers, 0);
 	struct evlearner* l = evlearner_init_internal(c, peers, f, arg);
-	evpaxos_config_free(c);
+
 	return l;
 }
 
@@ -193,6 +195,8 @@ void evlearner_free_internal(struct evlearner* l)
 {
 	event_free(l->hole_timer);
 	learner_free(l->state);
+
+	evpaxos_config_free(l->c);
 	free(l);
 }
 

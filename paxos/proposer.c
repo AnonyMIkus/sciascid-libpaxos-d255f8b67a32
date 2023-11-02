@@ -179,7 +179,7 @@ int proposer_receive_promise(struct proposer* p, paxos_promise* ack,
 		ack->aids[ii], inst->iid);
 		
 		if (ack->values[ii].paxos_value_len > 0) {
-			paxos_log_debug("Promise has value");
+			// paxos_log_debug("Promise has value");
 			if (ack->value_ballots[ii] > inst->value_ballot) {
 				if (instance_has_promised_value(inst))
 					paxos_value_free(inst->promised_value);
@@ -210,7 +210,7 @@ int proposer_accept(struct proposer* p, paxos_accept* out)
 	if (inst == NULL || !quorum_reached(&inst->quorum))
 		return 0;
 		
-	paxos_log_debug("Trying to accept iid %u", inst->iid);
+	// paxos_log_debug("Trying to accept iid %u", inst->iid);
 	
 	// Is there a value to accept?
 	if (!instance_has_value(inst))
