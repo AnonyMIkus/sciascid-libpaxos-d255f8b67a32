@@ -44,7 +44,7 @@ int acceptor_receive_accept(struct acceptor* a, paxos_accept* req, paxos_message
 int acceptor_receive_repeat(struct acceptor* a, iid_t iid, paxos_accepted* out);
 int acceptor_receive_trim(struct acceptor* a, paxos_trim* trim);
 void acceptor_set_current_state(struct acceptor* a, paxos_acceptor_state* out);
-int get_srcid_promise(paxos_promise* pr, struct acceptor* a);
+int get_srcid_promise_and_adjust(paxos_promise* pr, struct acceptor* a);
 int get_srcid_accepted(paxos_accepted* ac, struct acceptor* a);
 int get_srcid_preempted(paxos_preempted* ac, struct acceptor* a);
 

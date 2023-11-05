@@ -94,7 +94,7 @@ void acceptor_free(struct acceptor* a)
  * @param out Pointer to the paxos_message structure to store the response.
  * @return 1 if the prepare request was successfully processed, 0 otherwise.
  */
-int acceptor_receive_prepare(int isrc,struct acceptor* a, paxos_prepare* req, paxos_message* out)
+int acceptor_receive_prepare(int isrc, struct acceptor* a, paxos_prepare* req, paxos_message* out)
 {
 	paxos_accepted acc;
 	memset(&acc, 0, sizeof(acc));
@@ -128,9 +128,52 @@ int acceptor_receive_prepare(int isrc,struct acceptor* a, paxos_prepare* req, pa
 			return 0;
 		}
 	}
+	else
+	{
+		int bfound = 0;
+		for (int ii = 0; ii < acc.n_aids; ii++)
+		{
+			if (acc.aids[ii] == a->id)
+			{	
+				bfound = 1;
+				break;
+			}
+		}
+
+		if (bfound == 0)
+		{
+			acc.n_aids++;
+			uint32_t* paids = calloc(acc.n_aids, sizeof(uint32_t));
+			for (int jj = 0; jj < acc.n_aids - 1; jj++)
+			{
+				paids[jj] = acc.aids[jj];
+			}
+			paids[acc.n_aids - 1] = a->id;
+			free(acc.aids);
+			acc.aids = paids;
+			uint32_t* pblt = calloc(acc.n_aids, sizeof(uint32_t));
+			for (int jj = 0; jj < acc.n_aids - 1; jj++)
+			{
+				pblt[jj] = acc.ballots[jj];
+			}
+			pblt[acc.n_aids - 1] = req->ballot;
+			free(acc.ballots);
+			acc.ballots = pblt;
+			uint32_t* pvb = calloc(acc.n_aids, sizeof(uint32_t));
+			for (int jj = 0; jj < acc.n_aids - 1; jj++)
+			{
+				pvb[jj] = acc.value_ballots[jj];
+			}
+			pvb[acc.n_aids - 1] = req->ballot;
+			free(acc.value_ballots);
+			acc.value_ballots = pvb;
+			storage_put_record(&a->store, &acc);
+		}
+	}
 
 	if (storage_tx_commit(&a->store) != 0)
 		return 0;
+
 
 	paxos_accepted_to_promise(&acc, out);
 	return 1;
@@ -203,7 +246,8 @@ int acceptor_receive_repeat(struct acceptor* a, iid_t iid, paxos_accepted* out)
 		return 0;
 
 	//paxos_log_debug("tx commit");
-	if (out->values == NULL) return 0;
+	if (out->values == NULL)
+		return 0;
 	//paxos_log_debug("values not null");
 
 	return found && (out->values[0].paxos_value_len > 0);
@@ -322,7 +366,7 @@ static void paxos_accepted_to_preempted(int id, paxos_accepted* acc, paxos_messa
 	};
 }
 
-int get_srcid_promise(paxos_promise* pr, struct acceptor* a)
+int get_srcid_promise_and_adjust(paxos_promise* pr, struct acceptor* a)
 {
 	int ret = -1;
 	paxos_accepted acc;
@@ -334,8 +378,49 @@ int get_srcid_promise(paxos_promise* pr, struct acceptor* a)
 	int found = storage_get_record(&a->store, pr->iid, &acc);
 
 	if (found)
+	{
 		ret = acc.src;
 
+		int bfound = 0;
+		for (int ii = 0; ii < acc.n_aids; ii++)
+		{
+			if (acc.aids[ii] == pr->iid)
+			{
+				bfound = 1;
+				break;
+			}
+		}
+
+		if (bfound == 0)
+		{
+			acc.n_aids++;
+			uint32_t* paids = calloc(acc.n_aids, sizeof(uint32_t));
+			for (int jj = 0; jj < acc.n_aids - 1; jj++)
+			{
+				paids[jj] = acc.aids[jj];
+			}
+			paids[acc.n_aids - 1] = pr->iid;
+			free(acc.aids);
+			acc.aids = paids;
+			uint32_t* pblt = calloc(acc.n_aids, sizeof(uint32_t));
+			for (int jj = 0; jj < acc.n_aids - 1; jj++)
+			{
+				pblt[jj] = acc.ballots[jj];
+			}
+			pblt[acc.n_aids - 1] = pr->ballots[0];
+			free(acc.ballots);
+			acc.ballots = pblt;
+			uint32_t* pvb = calloc(acc.n_aids, sizeof(uint32_t));
+			for (int jj = 0; jj < acc.n_aids - 1; jj++)
+			{
+				pvb[jj] = acc.value_ballots[jj];
+			}
+			pvb[acc.n_aids - 1] = pr->value_ballots[0];
+			free(acc.value_ballots);
+			acc.value_ballots = pvb;
+			storage_put_record(&a->store, &acc);
+		}
+	}
 	if (storage_tx_commit(&a->store) != 0)
 		return -1;
 

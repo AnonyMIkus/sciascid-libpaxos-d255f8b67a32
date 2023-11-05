@@ -62,7 +62,7 @@ static void evacceptor_fwd_promise(struct peer* p, paxos_message* msg, void* arg
 
 	if (msg->type == PAXOS_PROMISE)
 	{
-		srcid = get_srcid_promise(&(msg->u.promise), ((struct evacceptor*)arg)->state);
+		srcid = get_srcid_promise_and_adjust(&(msg->u.promise), ((struct evacceptor*)arg)->state);
 	}
 
 	if (srcid >= 0)
@@ -108,11 +108,9 @@ static void evacceptor_fwd_accepted(struct peer* p, paxos_message* msg, void* ar
 	}
 }
 
-/*
-	Received a prepare request (phase 1a).
-*/
-
 /**
+ * Received a prepare request (phase 1a).
+ * 
  * Handles a received prepare request (phase 1a) from a peer.
  *
  * @param p A pointer to the peer structure representing the connection.
@@ -135,11 +133,9 @@ static void evacceptor_handle_prepare(struct peer* p, paxos_message* msg, void* 
 	}
 }
 
-/*
-	Received a accept request (phase 2a).
-*/
-
 /**
+ * Received a accept request (phase 2a).
+ * 
  * Handles a received accept request (phase 2a) from a peer.
  *
  * @param p A pointer to the peer structure representing the connection.
@@ -183,7 +179,7 @@ static void evacceptor_handle_repeat(struct peer* p, paxos_message* msg, void* a
 	paxos_repeat* repeat = &msg->u.repeat;
 	struct evacceptor* a = (struct evacceptor*)arg;
 	// paxos_log_debug("EVACCEPTOR --> (Handle Repeat) repeat Message Info: %x %x %x %x", msg->msg_info[0], msg->msg_info[1], msg->msg_info[2], msg->msg_info[3]);
-	//paxos_log_debug("Handle repeat for iids %d-%d", repeat->from, repeat->to);
+	// paxos_log_debug("Handle repeat for iids %d-%d", repeat->from, repeat->to);
 
 	peers_foreach_down_acceptor(a->peers, peer_send_paxos_message, msg);
 
