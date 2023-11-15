@@ -42,11 +42,13 @@
 static int bufferevent_pack_data(void* data, const char* buf, size_t len)
 {
 	struct bufferevent* bev = (struct bufferevent*)data;
-	/*	paxos_log_debug("len %d buffer: %lx", len, buf);
+	/*	
+	paxos_log_debug("len %d buffer: %lx", len, buf);
 	if(len == 1) 
 	{ 
 		paxos_log_debug("data written on 0 %lx", ((unsigned long) (*buf))&0xff);
-	}*/
+	}
+	*/
 	bufferevent_write(bev, buf, len);
 	return 0;
 }
@@ -93,7 +95,8 @@ void send_paxos_message(struct bufferevent* bev, paxos_message* msg)
 	case PAXOS_CLIENT_VALUE:
 		paxos_log_debug("PAXOS_CLIENT_VALUE");
 		break;
-	}*/
+	}
+	*/
 	msgpack_pack_paxos_message(packer, msg);	
 	msgpack_packer_free(packer);
 }
@@ -240,15 +243,16 @@ int recv_paxos_message(struct evbuffer* in, paxos_message* out)
 {
 	int rv = 0; // Return value indicating successful unpacking
 	char* buffer; // Buffer holding packed message data
-	size_t size, offset = 0; // Size of packed data and offset for unpacking
+	size_t size, offset = 0;
 	msgpack_unpacked msg; // Unpacked message structure
-	
-	size = evbuffer_get_length(in); // Get the size of data in the input buffer
+	size = evbuffer_get_length(in);
+
 	if (size == 0) // Return 0 if buffer is empty
 		return rv;
+
 	// paxos_log_debug("Bytes in buffer %ld, Starting to unpack.",size);
-	msgpack_unpacked_init(&msg); // Initialize the unpacked message structure
-	buffer = (char*)evbuffer_pullup(in, size);	// Get the pointer to the data in the buffer
+	msgpack_unpacked_init(&msg);
+	buffer = (char*)evbuffer_pullup(in, size);
 	int rc = msgpack_unpack_next(&msg, buffer, size, &offset);
 	// paxos_log_debug("is message ready %ld", rc);
 	// paxos_log_debug("Buffer: %d", sizeof(buffer));
@@ -260,10 +264,10 @@ int recv_paxos_message(struct evbuffer* in, paxos_message* out)
 			{
 				memset(bf, 0, sizeof(bf));
 				// sprintf(&(bf[strlen(bf)]), "\n%d:", i * 16);
-				for (int j = 0; j + i * 16 < size && j < 16; j++)
+				/*for (int j = 0; j + i * 16 < size && j < 16; j++)
 				{
 					// sprintf(&(bf[strlen(bf)]), "0x%2x.", (0xff) & ((unsigned int)buffer[i*16+j]));
-				}
+				}*/
 				// paxos_log_debug(bf);
 			}
 		}

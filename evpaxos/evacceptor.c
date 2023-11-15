@@ -68,6 +68,7 @@ static void evacceptor_fwd_promise(struct peer* p, paxos_message* msg, void* arg
 	if (srcid >= 0)
 	{
 		struct peer* srcpeer = peer_get_acceptor(p,srcid);
+
 		if (srcpeer != NULL)
 			send_paxos_message(peer_get_buffer(srcpeer), msg);
 	}
@@ -85,6 +86,7 @@ static void evacceptor_fwd_preempted(struct peer* p, paxos_message* msg, void* a
 	if (srcid >= 0)
 	{
 		struct peer* srcpeer = peer_get_acceptor(p, srcid);
+
 		if (srcpeer != NULL)
 			send_paxos_message(peer_get_buffer(srcpeer), msg);
 	}
@@ -103,6 +105,7 @@ static void evacceptor_fwd_accepted(struct peer* p, paxos_message* msg, void* ar
 	if (srcid >= 0)
 	{
 		struct peer* srcpeer = peer_get_acceptor(p, srcid);
+
 		if (srcpeer != NULL)
 			send_paxos_message(peer_get_buffer(srcpeer), msg);
 	}
@@ -123,7 +126,7 @@ static void evacceptor_handle_prepare(struct peer* p, paxos_message* msg, void* 
 	// paxos_log_debug("EVACCEPTOR --> Message Info: %x %x %x %x ", msg->msg_info[0], msg->msg_info[1], msg->msg_info[2], msg->msg_info[3]);
 	paxos_prepare* prepare = &msg->u.prepare;
 	struct evacceptor* a = (struct evacceptor*)arg;
-	// paxos_log_debug("Handle prepare for iid %d ballot %d", prepare->iid, prepare->ballot);
+	paxos_log_debug("Acceptor %u Handle prepare for iid %u ballot %u",get_aid(a->state), prepare->iid, prepare->ballot);
 	peers_foreach_down_acceptor(a->peers, peer_send_paxos_message, msg);
 
 	if (acceptor_receive_prepare(peer_get_id(p),a->state, prepare, &out) != 0) {
@@ -148,7 +151,7 @@ static void evacceptor_handle_accept(struct peer* p, paxos_message* msg, void* a
 	paxos_accept* accept = &msg->u.accept;
 	// paxos_log_debug("EVACCEPTOR --> (Handle Accept) accept Message Info : %x %x %x %x", msg->msg_info[0], msg->msg_info[1], msg->msg_info[2], msg->msg_info[3]);
 	struct evacceptor* a = (struct evacceptor*) arg;
-	// paxos_log_debug("Handle accept for iid %d bal %d", accept->iid, accept->ballot);
+	paxos_log_debug("Acceptor %u Handle accept for iid %u bal %u", get_aid(a->state),accept->iid, accept->ballot);
 	peers_foreach_down_acceptor(a->peers, peer_send_paxos_message, msg);
 
 	if (acceptor_receive_accept(a->state, accept, &out) != 0) {
@@ -179,8 +182,7 @@ static void evacceptor_handle_repeat(struct peer* p, paxos_message* msg, void* a
 	paxos_repeat* repeat = &msg->u.repeat;
 	struct evacceptor* a = (struct evacceptor*)arg;
 	// paxos_log_debug("EVACCEPTOR --> (Handle Repeat) repeat Message Info: %x %x %x %x", msg->msg_info[0], msg->msg_info[1], msg->msg_info[2], msg->msg_info[3]);
-	// paxos_log_debug("Handle repeat for iids %d-%d", repeat->from, repeat->to);
-
+	paxos_log_debug("Acceptor %u Handle repeat for iids %u-%u", get_aid(a->state), repeat->from, repeat->to);
 	peers_foreach_down_acceptor(a->peers, peer_send_paxos_message, msg);
 
 	for (iid = repeat->from; iid <= repeat->to; ++iid) {
@@ -222,6 +224,8 @@ static void evacceptor_handle_trim(struct peer* p, paxos_message* msg, void* arg
  */
 static void send_acceptor_state(int fd, short ev, void* arg)
 {
+	return; // 14.11.2023
+
 	struct evacceptor* a = (struct evacceptor*)arg;
 	paxos_message msg = {.type = PAXOS_ACCEPTOR_STATE};
 	// paxos_log_debug("EVACCEPTOR --> (Send State) Message Info: %x %x %x %x", msg.msg_info[0], msg.msg_info[1], msg.msg_info[2], msg.msg_info[3]);
@@ -286,11 +290,13 @@ struct evacceptor* evacceptor_init(int id, const char* config_file, struct event
 {
 	// Read the evpaxos configuration from the specified file.
 	struct evpaxos_config* config = evpaxos_config_read(config_file);
+
 	if (config  == NULL)
 		return NULL;
 	
 	// Get the total number of acceptors from the configuration
 	int acceptor_count = evpaxos_acceptor_count(config);
+
 	// Check if the provided acceptor ID is within valid range
 	if (id < 0 || id >= acceptor_count) {
 		paxos_log_error("Invalid acceptor id: %d.", id);
@@ -303,9 +309,11 @@ struct evacceptor* evacceptor_init(int id, const char* config_file, struct event
 	struct peers* peers = peers_new(base, config);
 	// Get the port on which the acceptor should listen from the configuration
 	int port = evpaxos_acceptor_listen_port(config, id);
+
 	// Start listening for connections on the specified port
 	if (peers_listen(peers, port) == 0)
 		return NULL;
+
 	// Initialize the evacceptor's internal components and return the pointer
 	struct evacceptor* acceptor = evacceptor_init_internal(id, config, peers);
 	evpaxos_config_free(config);

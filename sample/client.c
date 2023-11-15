@@ -140,8 +140,11 @@ static void client_submit_value(struct client* c)
 static long timeval_diff(struct timeval* t1, struct timeval* t2)
 {
 	long us;
-	us = (t2->tv_sec - t1->tv_sec) * 1e6;
-	if (us < 0) return 0;
+	us = (t2->tv_sec - t1->tv_sec) * 1e6; // *1e6;
+
+	if (us < 0)
+		return 0;
+
 	us += (t2->tv_usec - t1->tv_usec);
 	return us;
 }
@@ -226,7 +229,8 @@ static void on_connect(struct bufferevent* bev, short events, void* arg)
 	struct client* c = arg;
 
 	if (events & BEV_EVENT_CONNECTED) {
-		paxos_log_debug("Connected to proposer\n");
+		paxos_log_debug("Connected to proposer");
+
 		for (i = 0; i < c->outstanding; ++i)
 			client_submit_value(c);
 	} else {
@@ -261,6 +265,7 @@ static struct bufferevent* connect_to_proposer(struct client* c, const char* con
 	bufferevent_socket_connect(bev, (struct sockaddr*)&addr, sizeof(addr));
 	int flag = 1;
 	setsockopt(bufferevent_getfd(bev), IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
+	paxos_log_debug("Connected to Proposer %u", proposer_id);
 	return bev;
 }
 

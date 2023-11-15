@@ -108,9 +108,9 @@ static void start_replica(int nnodes, struct evpaxos_config* cfg, pthread_t* ref
 	{
 		p = evpaxos_alloc_parms(i, cfg, cb, NULL, base, &(syncs[i]),pgs);
 		cs[i] = (void*)p;
-		paxos_log_debug("init thread in parent");
+		paxos_log_debug("Init thread in parent");
 		evpaxos_replica_init_thread(&(ref[i]), &(syncs[i]), p);
-		paxos_log_debug("init thread in parent finished");
+		paxos_log_debug("Init thread in parent finished");
 		++i;
 	}
 

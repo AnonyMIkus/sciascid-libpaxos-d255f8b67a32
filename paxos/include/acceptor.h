@@ -37,6 +37,8 @@ extern "C" {
 
 struct acceptor;
 
+int get_aid(struct acceptor* a);
+
 struct acceptor* acceptor_new(int id);
 void acceptor_free(struct acceptor* a);
 int acceptor_receive_prepare(int isrc, struct acceptor* a, paxos_prepare* req, paxos_message* out);

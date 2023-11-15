@@ -74,6 +74,8 @@ static void peer_send_accept(struct peer* p, void* arg)
  */
 static void proposer_preexecute(struct evproposer* p)
 {
+	if (proposer_no_values(p->state)) return;
+
 	int i;
 	paxos_prepare pr;
 	int count = p->preexec_window - proposer_prepared_count(p->state);
@@ -121,6 +123,7 @@ static void evproposer_handle_promise(struct peer* p, paxos_message* msg, void* 
 	if (preempted)
 		peers_foreach_acceptor(proposer->peers, peer_send_prepare, &prepare);
 
+	paxos_log_debug("Proposer %u handling promise from %u trying to accept", get_prid(proposer->state), pro->aids[0]);
 	try_accept(proposer);
 }
 
@@ -159,7 +162,10 @@ static void evproposer_handle_preempted(struct peer* p, paxos_message* msg, void
 }
 
 /**
- * Handle a client value message received by an event proposer.
+ * Handle a 
+
+
+ message received by an event proposer.
  *
  * @param p A pointer to the peer from which the message was received.
  * @param msg A pointer to the Paxos message received.
@@ -169,10 +175,10 @@ static void evproposer_handle_client_value(struct peer* p, paxos_message* msg, v
 {
 	struct evproposer* proposer = arg;
 	struct paxos_client_value* v = &msg->u.client_value;
-	proposer_propose(proposer->state,
-		v->value.paxos_value_val,
-		v->value.paxos_value_len);
+	paxos_log_debug("Proposer %u client value request", get_prid(proposer->state));
+	proposer_propose(proposer->state, v->value.paxos_value_val, v->value.paxos_value_len);
 	try_accept(proposer);
+	paxos_log_debug("Proposer %u client value request completed", get_prid(proposer->state));
 }
 
 /**
@@ -198,6 +204,8 @@ static void evproposer_handle_acceptor_state(struct peer* p, paxos_message* msg,
  */
 static void evproposer_check_timeouts(evutil_socket_t fd, short event, void *arg)
 {
+	return; // 11:26 14.11.2023
+
 	struct evproposer* p = arg;
 	struct timeout_iterator* iter = proposer_timeout_iterator(p->state);
 
@@ -228,6 +236,7 @@ static void evproposer_preexec_once(evutil_socket_t fd, short event, void *arg)
 {
 	struct evproposer* p = arg;
 	proposer_preexecute(p);
+	paxos_log_debug("Proposer %u: Preexec",p->id);
 }
 
 /**
@@ -242,7 +251,6 @@ struct evproposer* evproposer_init_internal(int id, struct evpaxos_config* c, st
 {
 	struct evproposer* p;
 	int acceptor_count = evpaxos_acceptor_count(c);
-
 	p = malloc(sizeof(struct evproposer));
 	p->id = id;
 	p->preexec_window = paxos_config.proposer_preexec_window;

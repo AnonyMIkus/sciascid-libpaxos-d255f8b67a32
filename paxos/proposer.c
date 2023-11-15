@@ -66,12 +66,9 @@ struct timeout_iterator
 };
 
 static ballot_t proposer_next_ballot(struct proposer* p, ballot_t b);
-static void proposer_preempt(struct proposer* p, struct instance* inst, 
-	paxos_prepare* out);
-static void proposer_move_instance(khash_t(instance)* f, khash_t(instance)* t,
-	struct instance* inst);
-static void proposer_trim_instances(struct proposer* p, khash_t(instance)* h,
-	iid_t iid);
+static void proposer_preempt(struct proposer* p, struct instance* inst, paxos_prepare* out);
+static void proposer_move_instance(khash_t(instance)* f, khash_t(instance)* t, struct instance* inst);
+static void proposer_trim_instances(struct proposer* p, khash_t(instance)* h, iid_t iid);
 static struct instance* instance_new(iid_t iid, ballot_t ballot, int acceptors);
 static void instance_free(struct instance* inst);
 static int instance_has_value(struct instance* inst);
@@ -80,6 +77,10 @@ static int instance_has_timedout(struct instance* inst, struct timeval* now);
 static void instance_to_accept(struct instance* inst, paxos_accept* acc);
 static void carray_paxos_value_free(void* v);
 static int paxos_value_cmp(struct paxos_value* v1, struct paxos_value* v2);
+int proposer_no_values(struct proposer* p);
+
+
+int get_prid(struct proposer* p) { return p->id;  }
 
 
 struct proposer* proposer_new(int id, int acceptors)
@@ -140,29 +141,30 @@ void proposer_prepare(struct proposer* p, paxos_prepare* out)
 	assert(rv > 0);
 	kh_value(p->prepare_instances, k) = inst;
 	*out = (paxos_prepare) {inst->iid, inst->ballot};
+	paxos_log_debug("Proposer %u: Prepare with instance %u", p->id, iid);
 }
 
-int proposer_receive_promise(struct proposer* p, paxos_promise* ack,
-	paxos_prepare* out)
+int proposer_receive_promise(struct proposer* p, paxos_promise* ack, paxos_prepare* out)
 {
 	int rc = 0;
-
 	khiter_t k = kh_get_instance(p->prepare_instances, ack->iid);
 	
 	if (k == kh_end(p->prepare_instances)) {
-		paxos_log_debug("Promise dropped, instance %u not pending", ack->iid);
+		paxos_log_debug("Proposer %u: Promise dropped, instance %u not pending", p->id, ack->iid);
 		return 0;
 	}
+
 	struct instance* inst = kh_value(p->prepare_instances, k);
-	for(int ii=0; ii<ack->n_aids;ii++)
+
+	for(int ii = 0; ii < ack->n_aids;ii++)
 	{
 		if (ack->ballots[ii] < inst->ballot) {
-			paxos_log_debug("Promise dropped, too old");
+			paxos_log_debug("Proposer %u: Promise dropped, too old",p->id);
 			continue;
 		}
 	
 		if (ack->ballots[ii] > inst->ballot) {
-			paxos_log_debug("Instance %u preempted: ballot %d ack ballot %d",
+			paxos_log_debug("Proposer %u: Instance %u preempted: ballot %d ack ballot %d",p->id,
 			inst->iid, inst->ballot, ack->ballots[ii]);
 			proposer_preempt(p, inst, out);
 			// return 1;
@@ -171,11 +173,10 @@ int proposer_receive_promise(struct proposer* p, paxos_promise* ack,
 		}
 	
 		if (quorum_add(&inst->quorum, ack->aids[ii]) == 0) {
-			paxos_log_debug("Duplicate promise dropped from: %d, iid: %u",
-			ack->aids[ii], inst->iid);
+			paxos_log_debug("Proposer %u: Duplicate promise dropped from: %d, iid: %u", p->id, ack->aids[ii], inst->iid);
 		}
 		
-		paxos_log_debug("Received valid promise from: %d, iid: %u",
+		paxos_log_debug("Proposer %u: Received valid promise from: %d, iid: %u",p->id,
 		ack->aids[ii], inst->iid);
 		
 		if (ack->values[ii].paxos_value_len > 0) {
@@ -183,11 +184,12 @@ int proposer_receive_promise(struct proposer* p, paxos_promise* ack,
 			if (ack->value_ballots[ii] > inst->value_ballot) {
 				if (instance_has_promised_value(inst))
 					paxos_value_free(inst->promised_value);
+
 				inst->value_ballot = ack->value_ballots[ii];
 				inst->promised_value = paxos_value_new(ack->values[ii].paxos_value_val, ack->values[ii].paxos_value_len);
-				paxos_log_debug("Value in promise saved, removed older value");
+				paxos_log_debug("Proposer %u: Value in promise saved, removed older value", p->id);
 			} else
-				paxos_log_debug("Value in promise ignored");
+				paxos_log_debug("Proposer %u: Value in promise ignored", p->id);
 		}
 	}
 	return rc;
@@ -210,20 +212,24 @@ int proposer_accept(struct proposer* p, paxos_accept* out)
 	if (inst == NULL || !quorum_reached(&inst->quorum))
 		return 0;
 		
-	// paxos_log_debug("Trying to accept iid %u", inst->iid);
+	paxos_log_debug("Proposer %u: Trying to accept iid %u",p->id, inst->iid);
 	
 	// Is there a value to accept?
 	if (!instance_has_value(inst))
 		inst->value = carray_pop_front(p->values);
 
 	if (!instance_has_value(inst) && !instance_has_promised_value(inst)) {
-		paxos_log_debug("Proposer: No value to accept");
+		paxos_log_debug("Proposer %u: No value to accept", p->id);
 		return 0;
 	}
+
+	paxos_log_debug("Proposer %u have value to accept iid %u", p->id, inst->iid);
+
 	
 	// We have both a prepared instance and a value
 	proposer_move_instance(p->prepare_instances, p->accept_instances, inst);
 	instance_to_accept(inst, out);
+	paxos_log_debug("Proposer %u to accept stage %u", p->id, inst->iid);
 	return 1;
 }
 
@@ -232,7 +238,7 @@ int proposer_receive_accepted(struct proposer* p, paxos_accepted* ack)
 	khiter_t k = kh_get_instance(p->accept_instances, ack->iid);
 	
 	if (k == kh_end(p->accept_instances)) {
-		paxos_log_debug("Accept ack dropped, iid: %u not pending", ack->iid);
+		paxos_log_debug("Proposer %u: Accept ack dropped, iid: %u not pending", p->id, ack->iid);
 		return 0;
 	}
 	
@@ -240,13 +246,12 @@ int proposer_receive_accepted(struct proposer* p, paxos_accepted* ack)
 	
 	if (ack->ballots[0] == inst->ballot) {
 		if (!quorum_add(&inst->quorum, ack->aids[0])) {
-			paxos_log_debug("Duplicate accept dropped from: %d, iid: %u", 
-				ack->aids[0], inst->iid);
+			paxos_log_debug("Proposer %u: Duplicate accept dropped from: %d, iid: %u", p->id, ack->aids[0], inst->iid);
 			return 0;
 		}
 		
 		if (quorum_reached(&inst->quorum)) {
-			paxos_log_debug("Proposer: Quorum reached for instance %u", inst->iid);
+			paxos_log_debug("Proposer %u: Quorum reached for instance %u", p->id, inst->iid);
 
 			if (instance_has_promised_value(inst)) {
 				if (inst->value != NULL && paxos_value_cmp(inst->value, inst->promised_value) != 0) {
@@ -270,14 +275,14 @@ int proposer_receive_preempted(struct proposer* p, paxos_preempted* ack, paxos_p
 	khiter_t k = kh_get_instance(p->accept_instances, ack->iid);
 	
 	if (k == kh_end(p->accept_instances)) {
-		paxos_log_debug("Preempted dropped, iid: %u not pending", ack->iid);
+		paxos_log_debug("Proposer %u: Preempted dropped, iid: %u not pending", p->id, ack->iid);
 		return 0;
 	}
 	
 	struct instance* inst = kh_value(p->accept_instances, k);
 	
 	if (ack->ballot > inst->ballot) {
-		paxos_log_debug("Instance %u preempted: ballot %d ack ballot %d", inst->iid, inst->ballot, ack->ballot);
+		paxos_log_debug("Proposer %u Instance %u preempted: ballot %d ack ballot %d", p->id, inst->iid, inst->ballot, ack->ballot);
 
 		if (instance_has_promised_value(inst))
 			paxos_value_free(inst->promised_value);
@@ -394,15 +399,19 @@ static void proposer_move_instance(khash_t(instance)* f, khash_t(instance)* t, s
 static void proposer_trim_instances(struct proposer* p, khash_t(instance)* h, iid_t iid)
 {
 	khiter_t k;
+
 	for (k = kh_begin(h); k != kh_end(h); ++k) {
 		if (!kh_exist(h, k))
 			continue;
+
 		struct instance* inst = kh_value(h,k);
+
 		if (inst->iid <= iid) {
 			if (instance_has_value(inst)) {
 				carray_push_back(p->values, inst->value);
 				inst->value = NULL;
 			}
+
 			kh_del_instance(h, k);
 			instance_free(inst);
 		}
@@ -427,10 +436,13 @@ static struct instance* instance_new(iid_t iid, ballot_t ballot, int acceptors)
 static void instance_free(struct instance* inst)
 {
 	quorum_destroy(&inst->quorum);
+
 	if (instance_has_value(inst))
 		paxos_value_free(inst->value);
+
 	if (instance_has_promised_value(inst))
 		paxos_value_free(inst->promised_value);
+
 	free(inst);
 }
 
@@ -453,13 +465,17 @@ static int instance_has_timedout(struct instance* inst, struct timeval* now)
 static void instance_to_accept(struct instance* inst, paxos_accept* accept)
 {
 	paxos_value* v = inst->value;
+
 	if (instance_has_promised_value(inst))
 		v = inst->promised_value;
+
 	*accept = (paxos_accept) {
 		inst->iid,
 		inst->ballot,
-		{ v->paxos_value_len,
-		  v->paxos_value_val }
+		{ 
+			v->paxos_value_len,
+			v->paxos_value_val 
+		}
 	};
 }
 
@@ -467,10 +483,16 @@ static int paxos_value_cmp(struct paxos_value* v1, struct paxos_value* v2)
 {
 	if (v1->paxos_value_len != v2->paxos_value_len)
 		return -1;
+
 	return memcmp(v1->paxos_value_val, v2->paxos_value_val, v1->paxos_value_len);
 }
 
 static void carray_paxos_value_free(void* v)
 {
 	paxos_value_free(v);
+}
+
+ int proposer_no_values(struct proposer* p)
+{
+	return carray_empty(p->values);
 }

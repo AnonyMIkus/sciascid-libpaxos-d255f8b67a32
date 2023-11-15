@@ -277,6 +277,7 @@ static int parse_bytes(char* str, size_t* bytes)
 	char* end;
 	errno = 0; /* To distinguish strtoll's return value 0 */
 	*bytes = strtoull(str, &end, 10);
+
 	if (errno != 0) 
 		return 0;
 
@@ -380,7 +381,6 @@ static int parse_address(char* str, struct address* addr)
 	int id;
 	int port;
 	char address[128];
-
 	int rv = sscanf(str, "%d %s %d", &id, address, &port);
 	// paxos_log_debug("parsed %d-%s-%d", id, address, port);
 
@@ -401,7 +401,6 @@ static int parse_address_replica(char* str, struct address* addr)
 	char address[128];
 	int parentid = -1;
 	int groupid = -1;
-
 	int rv = sscanf(str, "%d %s %d %d %d", &id, address, &port, &groupid, &parentid);
 	// paxos_log_debug("\nparsed %d-%s-%d", id, address, port);
 
@@ -474,6 +473,7 @@ static struct option* lookup_option(char* opt)
 	while (options[i].name != NULL) {
 		if (strcasecmp(options[i].name, opt) == 0)
 			return &options[i];
+
 		i++;
 	}
 
@@ -532,6 +532,7 @@ static int parse_line(struct evpaxos_config* c, char* line)
 
 	line = strtrim(line);
 	opt = lookup_option(tok);
+
 	if (opt == NULL)
 		return 0;
 

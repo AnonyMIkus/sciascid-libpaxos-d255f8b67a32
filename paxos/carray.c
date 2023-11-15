@@ -77,6 +77,7 @@ int carray_push_back(struct carray* a, void* p)
 {
 	if (carray_full(a))
 		carray_grow(a);
+
 	a->array[a->tail] = p;
 	a->tail = (a->tail + 1) % a->size;
 	a->count++;
@@ -86,7 +87,10 @@ int carray_push_back(struct carray* a, void* p)
 void* carray_pop_front(struct carray* a)
 {
 	void* p;
-	if (carray_empty(a)) return NULL;
+
+	if (carray_empty(a))
+		return NULL;
+
 	p = a->array[a->head];
 	a->head = (a->head + 1) % a->size;
 	a->count--;
@@ -96,6 +100,7 @@ void* carray_pop_front(struct carray* a)
 void carray_foreach(struct carray* a, void (*carray_cb)(void*))
 {
 	int i;
+
 	for (i = 0; i < a->count; ++i)
 		carray_cb(carray_at(a, i));
 }
@@ -109,8 +114,10 @@ static void carray_grow(struct carray* a)
 {
 	int i;
 	struct carray* tmp = carray_new(a->size * 2);
+
 	for (i = 0; i < a->count; i++)
 		carray_push_back(tmp, carray_at(a, i));
+
 	free(a->array);
 	a->head = 0;
 	a->tail = tmp->tail;
