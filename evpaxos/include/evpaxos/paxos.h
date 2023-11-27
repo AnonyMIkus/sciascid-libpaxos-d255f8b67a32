@@ -56,8 +56,7 @@ typedef void (*deliver_function)(
 /*
 *	Allocates param struct for threading
 */
-struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config,
-	deliver_function cb, void* arg, struct event_base* base, pthread_mutex_t* isync, pthread_mutex_t*  pgs);
+struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config, deliver_function cb, void* arg, struct event_base* base, pthread_mutex_t* isync, pthread_mutex_t*  pgs);
 /**
  * Create a Paxos replica, consisting of a collocated Acceptor, Proposer,
  * and Learner.
@@ -73,8 +72,7 @@ struct evpaxos_parms* evpaxos_alloc_parms(int id, struct evpaxos_config* config,
  *
  * @see evpaxos_replica_free()
  */
-struct evpaxos_replica* evpaxos_replica_init(int id,struct evpaxos_config* config,
-	deliver_function cb, void* arg, struct event_base* base);
+struct evpaxos_replica* evpaxos_replica_init(int id,struct evpaxos_config* config, deliver_function cb, void* arg, struct event_base* base);
 /* 
 	the same as above but specified for threads 
 */
@@ -96,8 +94,7 @@ void evpaxos_replica_free(struct evpaxos_replica* replica);
  *
  * @param iid the starting instance id
  */
-void evpaxos_replica_set_instance_id(struct evpaxos_replica* replica,
-	unsigned iid);
+void evpaxos_replica_set_instance_id(struct evpaxos_replica* replica, unsigned iid);
 
 /**
  * Send a trim message to all acceptors/replicas. Acceptors will trim their log
@@ -110,8 +107,7 @@ void evpaxos_replica_send_trim(struct evpaxos_replica* replica, unsigned iid);
 /**
  * Used by replicas to submit values.
  */
-void evpaxos_replica_submit(struct evpaxos_replica* replica,
-	char* value, int size);
+void evpaxos_replica_submit(struct evpaxos_replica* replica, char* value, int size);
 
 /**
  * Returns the number of replicas in the configuration.
@@ -123,8 +119,7 @@ int evpaxos_replica_count(struct evpaxos_replica* replica);
  * an optional argument to that is passed to the callback, and
  * a libevent event_base.
  */
-struct evlearner* evlearner_init(const char* config, deliver_function f,
-	void* arg, struct event_base* base);
+struct evlearner* evlearner_init(const char* config, deliver_function f, void* arg, struct event_base* base);
 
 /**
  * Release the memory allocated by the learner
@@ -152,8 +147,7 @@ void evlearner_send_trim(struct evlearner* l, unsigned iid);
  * Initializes a acceptor with a given id (which MUST be unique),
  * a config file and a libevent event_base.
  */
-struct evacceptor* evacceptor_init(int id, const char* config,
-	struct event_base* b);
+struct evacceptor* evacceptor_init(int id, const char* config, struct event_base* b);
 
 /**
  * Frees the memory allocated by the acceptor.
@@ -167,8 +161,7 @@ void evacceptor_free(struct evacceptor* a);
  *
  * @param id a unique identifier, must be in the range [0...(MAX_N_OF_PROPOSERS-1)]
  */
-struct evproposer* evproposer_init(int id, const char* config,
-	struct event_base* b);
+struct evproposer* evproposer_init(int id, const char* config, struct event_base* b);
 
 /**
  * Release the memory allocated by the proposer

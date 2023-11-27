@@ -40,6 +40,7 @@ typedef struct paxos_value paxos_value;
 
 struct paxos_prepare
 {
+	uint32_t src;
 	uint32_t iid;
 	uint32_t ballot;
 };
@@ -47,7 +48,7 @@ typedef struct paxos_prepare paxos_prepare;
 
 struct paxos_promise
 {
-	uint32_t aid_0;
+	uint32_t src;
 	uint32_t iid;
 	uint32_t ballot_0;
 	uint32_t value_ballot_0;
@@ -62,6 +63,7 @@ typedef struct paxos_promise paxos_promise;
 
 struct paxos_accept
 {
+	uint32_t src;
 	uint32_t iid;
 	uint32_t ballot;
 	paxos_value value;

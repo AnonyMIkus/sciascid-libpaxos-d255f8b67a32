@@ -127,9 +127,13 @@ static void evacceptor_handle_prepare(struct peer* p, paxos_message* msg, void* 
 	paxos_prepare* prepare = &msg->u.prepare;
 	struct evacceptor* a = (struct evacceptor*)arg;
 	paxos_log_debug("Acceptor %u Handle prepare for iid %u ballot %u",get_aid(a->state), prepare->iid, prepare->ballot);
-	peers_foreach_down_acceptor(a->peers, peer_send_paxos_message, msg);
 
-	if (acceptor_receive_prepare(peer_get_id(p),a->state, prepare, &out) != 0) {
+	uint32_t originalsrc = prepare->src;
+	prepare->src = get_aid(a->state);
+	peers_foreach_down_acceptor(a->peers, peer_send_paxos_message, msg);
+	prepare->src = originalsrc;
+
+	if (acceptor_receive_prepare(prepare->src,a->state, prepare, &out) != 0) {
 		// paxos_log_debug("EVACCEPTOR --> Sending Message Info: %x %x %x %x ", msg->msg_info[0], msg->msg_info[1], msg->msg_info[2], msg->msg_info[3]);
 		send_paxos_message(peer_get_buffer(p), &out);
 		paxos_message_destroy(&out);
@@ -152,7 +156,9 @@ static void evacceptor_handle_accept(struct peer* p, paxos_message* msg, void* a
 	// paxos_log_debug("EVACCEPTOR --> (Handle Accept) accept Message Info : %x %x %x %x", msg->msg_info[0], msg->msg_info[1], msg->msg_info[2], msg->msg_info[3]);
 	struct evacceptor* a = (struct evacceptor*) arg;
 	paxos_log_debug("Acceptor %u Handle accept for iid %u bal %u", get_aid(a->state),accept->iid, accept->ballot);
+	uint32_t originalsrc = accept->src;
 	peers_foreach_down_acceptor(a->peers, peer_send_paxos_message, msg);
+	accept->src = originalsrc;
 
 	if (acceptor_receive_accept(a->state, accept, &out) != 0) {
 		if (out.type == PAXOS_ACCEPTED) {

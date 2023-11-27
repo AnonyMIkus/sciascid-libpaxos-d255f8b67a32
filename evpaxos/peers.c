@@ -181,14 +181,16 @@ void peers_connect_to_acceptors(struct peers* p, int replica_id)
 {
 	p->ownid = replica_id;
 	int i;
+	int arridx = 0;
 	for (i = 0; i < evpaxos_acceptor_count(p->config); i++) {
-		paxos_log_debug("Conntect to acceptor address.");
+		paxos_log_debug("replica %d Connect to acceptor address , idx %d",replica_id,i);
 		struct sockaddr_in addr = evpaxos_acceptor_address(p->config, i);
 
 		if (p->config->acceptors[i].groupid == p->config->acceptors[replica_id].groupid)
 		{
 			peers_connect(p, i, &addr);
-			paxos_log_debug("Connected, case 1");
+			paxos_log_debug("replica %d Connect case 1 , idx %d, arridx %d", replica_id, i,arridx);
+			arridx++;
 		}
 		else if (
 			(p->config->acceptors[replica_id].groupid != p->config->acceptors[replica_id].parentid)
@@ -197,7 +199,8 @@ void peers_connect_to_acceptors(struct peers* p, int replica_id)
 			) 
 		{
 			peers_connect(p, i, &addr);
-			paxos_log_debug("Connected, case 2");
+			paxos_log_debug("replica %d Connect case 2 , idx %d, arridx %d", replica_id, i, arridx);
+			arridx++;
 		}
 		else if (
 			(p->config->acceptors[replica_id].groupid != p->config->acceptors[replica_id].parentid)
@@ -208,7 +211,8 @@ void peers_connect_to_acceptors(struct peers* p, int replica_id)
 			)
 		{
 			peers_connect(p, i, &addr);
-			paxos_log_debug("Connected, case 3");
+			paxos_log_debug("replica %d Connect case 3 , idx %d, arridx %d", replica_id, i, arridx);
+			arridx++;
 		}
 		else if (
 			(p->config->acceptors[i].groupid != p->config->acceptors[i].parentid)
@@ -217,7 +221,8 @@ void peers_connect_to_acceptors(struct peers* p, int replica_id)
 			)
 		{
 			peers_connect(p, i, &addr);
-			paxos_log_debug("Connected, case 4");
+			paxos_log_debug("replica %d Connect case 4 , idx %d, arridx %d", replica_id, i, arridx);
+			arridx++;
 		}
 	}
 }
@@ -258,7 +263,7 @@ void peers_foreach_down_acceptor(struct peers* p, peer_iter_cb cb, void* arg)
 	{
 
 			if (
-				( (p->config->acceptors[p->ownid].groupid == p->config->acceptors[i].groupid) && (p->config->acceptors[p->ownid].groupid != p->config->acceptors[i].parentid))
+				( (p->config->acceptors[p->ownid].groupid == p->config->acceptors[i].groupid) && (p->config->acceptors[i].groupid == p->config->acceptors[i].parentid))
 				|| 
 				( (p->config->acceptors[p->ownid].groupid == p->config->acceptors[i].parentid) && (p->config->acceptors[i].groupid != p->config->acceptors[i].parentid) )
 			   )
@@ -278,10 +283,13 @@ void peers_foreach_down_acceptor(struct peers* p, peer_iter_cb cb, void* arg)
  */
 struct peer* peers_get_acceptor(struct peers* p, int id)
 {
+	if (p == NULL) return NULL;
 	int i;
-	for (i = 0; p->peers_count; ++i)
-		if (p->peers[i]->id == id)
+	for (i = 0; i<p->peers_count; i++)
+	{
+		if (p->peers[i] !=NULL && p->peers[i]->id == id)
 			return p->peers[i];
+	};
 	return NULL;
 }
 

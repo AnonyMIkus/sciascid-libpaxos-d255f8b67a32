@@ -80,7 +80,7 @@ int counter = 0;
 
 TEST_P(AcceptorTest, Prepare) {
 	paxos_message msg;
-	paxos_prepare pre = {1, 101};
+	paxos_prepare pre = {0, 1, 101};
 	acceptor_receive_prepare(-1, a, &pre, &msg);
 	CHECK_PROMISE(msg, 1, 101, 0, NULL);
 	counter++;
@@ -89,7 +89,7 @@ TEST_P(AcceptorTest, Prepare) {
 
 TEST_P(AcceptorTest, PrepareDuplicate) {
 	paxos_message msg;
-	paxos_prepare pre = {1, 101};
+	paxos_prepare pre = {0, 1, 101};
 	acceptor_receive_prepare(-1, a, &pre, &msg);
 	acceptor_receive_prepare(-1, a, &pre, &msg);
 	CHECK_PROMISE(msg, 1, 101, 0, NULL);
@@ -101,7 +101,7 @@ TEST_P(AcceptorTest, PrepareSmallerBallot) {
 	paxos_message msg;
 	int ballots[] = {11, 5, 9, 10, 2};
 	for (int i = 0; i < (sizeof(ballots)/sizeof(int)); ++i) {
-		pre = (paxos_prepare) {1, ballots[i]};
+		pre = (paxos_prepare) {0, 1, ballots[i]};
 		acceptor_receive_prepare(-1, a, &pre, &msg);
 		CHECK_PROMISE(msg, 1, ballots[0], 0, NULL);
 		counter++;
@@ -113,7 +113,7 @@ TEST_P(AcceptorTest, PrepareHigherBallot) {
 	paxos_message msg;
 	int ballots[] = {0, 10, 11, 20, 33};
 	for (int i = 0; i < sizeof(ballots)/sizeof(int); ++i) {
-		pre = (paxos_prepare) {1, ballots[i]};
+		pre = (paxos_prepare) {0, 1, ballots[i]};
 		acceptor_receive_prepare(-1, a, &pre, &msg);
 		CHECK_PROMISE(msg, 1, ballots[i], 0, NULL);
 		counter++;
@@ -122,7 +122,7 @@ TEST_P(AcceptorTest, PrepareHigherBallot) {
 
 TEST_P(AcceptorTest, Accept) {
 	paxos_message msg;
-	paxos_accept ar = {1, 101, {4, (char*)"foo"}};
+	paxos_accept ar = {0,1, 101, {4, (char*)"foo"}};
 	acceptor_receive_accept(a, &ar, &msg);
 	counter++;
 	CHECK_ACCEPTED(msg, 1, 101, 101, "foo");
@@ -131,8 +131,8 @@ TEST_P(AcceptorTest, Accept) {
 }
 
 TEST_P(AcceptorTest, AcceptPrepared) {
-	paxos_prepare pr = {1, 101};
-	paxos_accept ar = {1, 101, {8 , (char*)"foo bar"}};
+	paxos_prepare pr = {0, 1, 101};
+	paxos_accept ar = {0,1, 101, {8 , (char*)"foo bar"}};
 	paxos_message msg;
 
 	acceptor_receive_prepare(-1, a, &pr, &msg);
@@ -146,8 +146,8 @@ TEST_P(AcceptorTest, AcceptPrepared) {
 }
 
 TEST_P(AcceptorTest, AcceptHigherBallot) {
-	paxos_prepare pr = {1, 101};
-	paxos_accept ar = {1, 201, {4, (char*)"baz"}};
+	paxos_prepare pr = {0, 1, 101};
+	paxos_accept ar = {0, 1, 201, {4, (char*)"baz"}};
 	paxos_message msg;
 
 	acceptor_receive_prepare(-1, a, &pr, &msg);
@@ -161,8 +161,8 @@ TEST_P(AcceptorTest, AcceptHigherBallot) {
 }
 
 TEST_P(AcceptorTest, AcceptSmallerBallot) {
-	paxos_prepare pr = {1, 201};
-	paxos_accept ar = {1, 101, {4, (char*)"bar"}};
+	paxos_prepare pr = {0, 1, 201};
+	paxos_accept ar = {0, 1, 101, {4, (char*)"bar"}};
 	paxos_message msg;
 
 	acceptor_receive_prepare(-1, a, &pr, &msg);
@@ -176,8 +176,8 @@ TEST_P(AcceptorTest, AcceptSmallerBallot) {
 }
 
 TEST_P(AcceptorTest, PrepareWithAcceptedValue) {
-	paxos_prepare pr = {1, 101};
-	paxos_accept ar = {1, 101, {4, (char*)"bar"}};
+	paxos_prepare pr = {0, 1, 101};
+	paxos_accept ar = {0, 1, 101, {4, (char*)"bar"}};
 	paxos_message msg;
 
 	acceptor_receive_prepare(-1, a, &pr, &msg);
@@ -185,7 +185,7 @@ TEST_P(AcceptorTest, PrepareWithAcceptedValue) {
 	paxos_message_destroy(&msg);
 	counter = counter + 2;
 
-	pr = (paxos_prepare) {1, 201};
+	pr = (paxos_prepare) {0, 1, 201};
 	acceptor_receive_prepare(-1, a, &pr, &msg);
 	CHECK_PROMISE(msg, 1, 201, 101, "bar");
 	paxos_message_destroy(&msg);
@@ -195,7 +195,7 @@ TEST_P(AcceptorTest, PrepareWithAcceptedValue) {
 TEST_P(AcceptorTest, Repeat) {
 	paxos_message msg;
 	paxos_accepted acc;
-	paxos_accept ar = {10, 101, {10, (char*)"aaaaaaaaa"}};
+	paxos_accept ar = {0,10, 101, {10, (char*)"aaaaaaaaa"}};
 
 	acceptor_receive_accept(a, &ar, &msg);
 	paxos_message_destroy(&msg);
@@ -211,7 +211,7 @@ TEST_P(AcceptorTest, RepeatEmpty) {
 
 TEST_P(AcceptorTest, RepeatPrepared) {
 	paxos_accepted acc;
-	paxos_prepare pre = {1, 101};
+	paxos_prepare pre = {0, 1, 101};
 	paxos_message msg;
 
 	acceptor_receive_prepare(-1, a, &pre, &msg);
@@ -227,12 +227,12 @@ TEST_P(AcceptorTest, TrimmedInstances) {
 	if (paxos_config.storage_backend == PAXOS_MEM_STORAGE)
 		return;
 
-	paxos_accept ar1 = {1, 101, {5, (char*)"1234"}};
+	paxos_accept ar1 = {0,1, 101, {5, (char*)"1234"}};
 	acceptor_receive_accept(a, &ar1, &msg);
 	paxos_message_destroy(&msg);
 	counter++;
 	
-	paxos_accept ar2 = {10, 101, {5, (char*)"1234"}};
+	paxos_accept ar2 = {0,10, 101, {5, (char*)"1234"}};
 	acceptor_receive_accept(a, &ar2, &msg);
 	paxos_message_destroy(&msg);
 	counter++;
@@ -243,14 +243,14 @@ TEST_P(AcceptorTest, TrimmedInstances) {
 	
 	paxos_prepare pre;
 	for (int i = 1; i < 6; ++i) {
-		pre = (paxos_prepare){i, 101};
+		pre = (paxos_prepare){0, i, 101};
 		ASSERT_FALSE(acceptor_receive_prepare(-1, a, &pre, &msg));
 		counter++;
 	}
 	
 	paxos_accept acc;
 	for (int i = 1; i < 6; ++i) {
-		acc = (paxos_accept){i, 101, {5, (char*)"test"}};;
+		acc = (paxos_accept){0,i, 101, {5, (char*)"test"}};;
 		ASSERT_FALSE(acceptor_receive_accept(a, &acc, &msg));
 		counter++;
 	}

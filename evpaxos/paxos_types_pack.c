@@ -149,8 +149,9 @@ static void msgpack_unpack_paxos_value_at(msgpack_object* o, paxos_value* v, int
  */
 void msgpack_pack_paxos_prepare(msgpack_packer* p, paxos_prepare* v)
 {
-	msgpack_pack_array(p, 3); // Start packing an array with 3 elements
+	msgpack_pack_array(p, 4); // Start packing an array with 3 elements
 	msgpack_pack_int32(p, PAXOS_PREPARE); // Pack the PAXOS_PREPARE constant
+	msgpack_pack_uint32(p, v->src); // Pack the source id
 	msgpack_pack_uint32(p, v->iid); // Pack the instance ID
 	msgpack_pack_uint32(p, v->ballot); // Pack the ballot
 }
@@ -165,6 +166,7 @@ void msgpack_unpack_paxos_prepare(msgpack_object* o, paxos_prepare* v)
 {
 	int i = 1;
 	// Unpack the instance ID and ballot from the MessagePack object
+	msgpack_unpack_uint32_at(o, &v->src, &i);
 	msgpack_unpack_uint32_at(o, &v->iid, &i);
 	msgpack_unpack_uint32_at(o, &v->ballot, &i);
 }
@@ -179,7 +181,7 @@ void msgpack_pack_paxos_promise(msgpack_packer* p, paxos_promise* v)
 {
 	msgpack_pack_array(p, 7+v->n_aids+v->n_aids+v->n_aids+v->n_aids); // Start packing an array with 7 elements
 	msgpack_pack_int32(p, PAXOS_PROMISE);
-	msgpack_pack_uint32(p, v->aid_0);
+	msgpack_pack_uint32(p, v->src);
 	msgpack_pack_uint32(p, v->iid);
 	msgpack_pack_uint32(p, v->ballot_0);
 	msgpack_pack_uint32(p, v->value_ballot_0);
@@ -205,7 +207,7 @@ void msgpack_pack_paxos_promise(msgpack_packer* p, paxos_promise* v)
 void msgpack_unpack_paxos_promise(msgpack_object* o, paxos_promise* v)
 {
 	int i = 1;
-	msgpack_unpack_uint32_at(o, &v->aid_0, &i);
+	msgpack_unpack_uint32_at(o, &v->src, &i);
 	msgpack_unpack_uint32_at(o, &v->iid, &i);
 	msgpack_unpack_uint32_at(o, &v->ballot_0, &i);
 	msgpack_unpack_uint32_at(o, &v->value_ballot_0, &i);
@@ -233,8 +235,9 @@ void msgpack_unpack_paxos_promise(msgpack_object* o, paxos_promise* v)
  */
 void msgpack_pack_paxos_accept(msgpack_packer* p, paxos_accept* v)
 {
-	msgpack_pack_array(p, 4); // Start packing an array with 4 elements
+	msgpack_pack_array(p, 5); // Start packing an array with 4 elements
 	msgpack_pack_int32(p, PAXOS_ACCEPT);
+	msgpack_pack_uint32(p, v->src);
 	msgpack_pack_uint32(p, v->iid);
 	msgpack_pack_uint32(p, v->ballot);
 	msgpack_pack_paxos_value(p, &v->value);
@@ -249,6 +252,7 @@ void msgpack_pack_paxos_accept(msgpack_packer* p, paxos_accept* v)
 void msgpack_unpack_paxos_accept(msgpack_object* o, paxos_accept* v)
 {
 	int i = 1;
+	msgpack_unpack_uint32_at(o, &v->src, &i);
 	msgpack_unpack_uint32_at(o, &v->iid, &i);
 	msgpack_unpack_uint32_at(o, &v->ballot, &i);
 	msgpack_unpack_paxos_value_at(o, &v->value, &i);

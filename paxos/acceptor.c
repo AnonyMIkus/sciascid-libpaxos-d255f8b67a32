@@ -308,7 +308,7 @@ static void paxos_accepted_to_promise(paxos_accepted* acc, paxos_message* out)
 	memcpy(&(out->msg_info[0]), "AAtP", 4);
 	out->type = PAXOS_PROMISE;
 	out->u.promise = (paxos_promise){
-		acc->aids[0],
+		acc->src,
 		acc->iid,
 		acc->ballots[0],
 		acc->value_ballots[0],
@@ -348,7 +348,7 @@ static void paxos_accept_to_accepted(int id, paxos_accept* acc, paxos_message* o
 	memcpy(&(out->msg_info[0]), "AAtA", 4);
 	out->type = PAXOS_ACCEPTED;
 	out->u.accepted = (paxos_accepted){
-		id,
+		acc->src,
 		acc->iid,
 		acc->ballot,
 		acc->ballot,

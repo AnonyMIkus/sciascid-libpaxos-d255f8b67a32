@@ -116,6 +116,7 @@ static void random_string(char *s, const int len)
  */
 static void client_submit_value(struct client* c)
 {
+	//paxos_log_debug("submitting paxos value");
 	struct client_value* v = (struct client_value*)c->send_buffer;
 	v->client_id = c->id;
 	gettimeofday(&v->t, NULL);
@@ -140,7 +141,7 @@ static void client_submit_value(struct client* c)
 static long timeval_diff(struct timeval* t1, struct timeval* t2)
 {
 	long us;
-	us = (t2->tv_sec - t1->tv_sec) * 1e6; // *1e6;
+	us = (t2->tv_sec - t1->tv_sec) * 1e6;
 
 	if (us < 0)
 		return 0;
@@ -209,7 +210,15 @@ static void on_stats(evutil_socket_t fd, short event, void *arg)
 {
 	struct client* c = arg;
 	double mbps = (double)(c->stats.delivered_bytes * 8) / (1024*1024);
-	printf("%d value/sec, %.2f Mbps, latency min %ld us max %ld us avg %ld us\n", c->stats.delivered_count, mbps, c->stats.min_latency,	c->stats.max_latency, c->stats.avg_latency);
+//	printf("%d value/sec, %.2f Mbps, latency min %ld us max %ld us avg %ld us\n", c->stats.delivered_count, mbps, c->stats.min_latency,	c->stats.max_latency, c->stats.avg_latency);
+	printf("%d;%ld;%ld;%ld\n", c->stats.delivered_count, c->stats.min_latency, c->stats.max_latency, c->stats.avg_latency);
+	FILE* pf; pf = fopen("stats.txt", "a+");
+	char Buff[1024]; memset(Buff, 0, sizeof(Buff));
+	sprintf(Buff,"%d;%ld;%ld;%ld\n", c->stats.delivered_count, c->stats.min_latency, c->stats.max_latency, c->stats.avg_latency);
+	fputs( Buff,pf);
+	fflush(pf);
+	fclose(pf);
+
 	memset(&c->stats, 0, sizeof(struct stats));
 	event_add(c->stats_ev, &c->stats_interval);
 }
