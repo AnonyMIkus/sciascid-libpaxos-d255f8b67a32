@@ -52,6 +52,7 @@ struct evproposer
  */
 static void peer_send_prepare(struct peer* p, void* arg)
 {
+	//getcnt();
 	send_paxos_prepare(peer_get_buffer(p), arg);
 }
 
@@ -64,6 +65,7 @@ static void peer_send_prepare(struct peer* p, void* arg)
  */
 static void peer_send_accept(struct peer* p, void* arg)
 {
+	//getcnt();
 	send_paxos_accept(peer_get_buffer(p), arg);
 }
 
@@ -74,7 +76,8 @@ static void peer_send_accept(struct peer* p, void* arg)
  */
 static void proposer_preexecute(struct evproposer* p)
 {
-	if (proposer_no_values(p->state)) return;
+	if (proposer_no_values(p->state))
+		return;
 
 	int i;
 	paxos_prepare pr;

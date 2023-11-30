@@ -113,6 +113,11 @@ struct peers* peers_new(struct event_base* base, struct evpaxos_config* config)
 	return p;
 }
 
+struct evpaxos_config* getconfigfrompeers(struct peers* peers) 
+{ 
+	return peers->config;
+}
+
 /**
  *
  * This function releases the resources associated with a 'peers' structure, including

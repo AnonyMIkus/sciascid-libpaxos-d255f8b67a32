@@ -45,6 +45,7 @@ typedef void (*peer_cb)(struct peer* p, paxos_message* m, void* arg);
 typedef void (*peer_iter_cb)(struct peer* p, void* arg);
 	
 struct peers* peers_new(struct event_base* base, struct evpaxos_config* config);
+struct evpaxos_config* getconfigfrompeers(struct peers* peers);
 void peers_free(struct peers* p);
 int peers_count(struct peers* p);
 void peers_connect_to_acceptors(struct peers* p,int replica_id);

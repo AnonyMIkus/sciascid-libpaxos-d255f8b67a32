@@ -177,6 +177,15 @@ int main(int argc, char const* argv[])
 		i++;
 	}
 
+	{
+	char Buff[1024]; memset(Buff, 0, sizeof(Buff));
+	sprintf(Buff, "time;pid;replicas;msg;timediff;msgpersec\n");
+	FILE* pf;
+	pf = fopen("msgstat.csv", "a+");
+	fputs(Buff, pf);
+	fflush(pf);
+	fclose(pf);
+	}
 	// Process should wait for following reason: Allowing to start debug.
 	// sleep(30);
 

@@ -1,0 +1,2 @@
+| Gesamtanzahl der Nachrichten | Nachrichtenanzahl pro Sekunde | Anzahl der Replikas | Zeitunterschied / Latenz | 
+| ---------------------------- | ----------------------------- | ------------------- | ------------------------ |

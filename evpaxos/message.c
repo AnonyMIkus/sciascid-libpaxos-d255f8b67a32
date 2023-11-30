@@ -31,6 +31,14 @@
 #include "paxos_types_pack.h"
 #include <string.h>
 
+volatile unsigned long nmsg = 0;
+volatile unsigned long inc = 1;
+
+unsigned long getcnt() 
+{ 
+	paxos_log_debug("message counter %ld", __sync_fetch_and_add(&nmsg, 0));
+	return __sync_fetch_and_add(&nmsg, 0);
+}
  /**
   * Callback function to pack data and write it to a bufferevent.
   *
@@ -61,6 +69,8 @@ static int bufferevent_pack_data(void* data, const char* buf, size_t len)
  */
 void send_paxos_message(struct bufferevent* bev, paxos_message* msg)
 {
+	__sync_fetch_and_add(&nmsg, inc);
+	// paxos_log_debug("message counter2 %ld", __sync_fetch_and_add(&nmsg, 0));
 	msgpack_packer* packer;
 	// Create a msgpack_packer associated with the provided bufferevent
 	packer = msgpack_packer_new(bev, bufferevent_pack_data);

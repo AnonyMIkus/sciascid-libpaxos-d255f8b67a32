@@ -163,8 +163,8 @@ int learner_deliver_next(struct learner* l, paxos_accepted* out)
 
 	// Copy the final value and mark it as delivered
 	// paxos_log_debug("learner %lx deliever next stage2", l);
-	//	memcpy(out, inst->final_value, sizeof(paxos_accepted));
-	//	paxos_value_copy(&out->value, &inst->final_value->value);
+	// memcpy(out, inst->final_value, sizeof(paxos_accepted));
+	// paxos_value_copy(&out->value, &inst->final_value->value);
 	paxos_accepted_deep_copy(inst->final_value, out);
 	learner_delete_instance(l, inst);
 	l->current_iid++;
@@ -185,7 +185,7 @@ int learner_has_holes(struct learner* l, iid_t* from, iid_t* to)
 	if (l->highest_iid_closed > l->current_iid) {
 		*from = l->current_iid;
 		*to = l->highest_iid_closed;
-		return 1;// Holes are found
+		return 1; // Holes are found
 	}
 	return 0; // No holes
 }
@@ -201,8 +201,10 @@ static struct instance* learner_get_instance(struct learner* l, iid_t iid)
 {
 	khiter_t k;
 	k = kh_get_instance(l->instances, iid);
+
 	if (k == kh_end(l->instances))
 		return NULL;
+
 	return kh_value(l->instances, k);
 }
 
@@ -228,6 +230,7 @@ static struct instance* learner_get_current_instance(struct learner* l)
 static struct instance* learner_get_instance_or_create(struct learner* l, iid_t iid)
 {
 	struct instance* inst = learner_get_instance(l, iid);
+
 	if (inst == NULL) {
 		int rv;
 		khiter_t k = kh_put_instance(l->instances, iid, &rv); // Store the instance in the map
@@ -235,6 +238,7 @@ static struct instance* learner_get_instance_or_create(struct learner* l, iid_t 
 		inst = instance_new(l->acceptors);
 		kh_value(l->instances, k) = inst;
 	}
+
 	return inst;
 }
 
@@ -248,8 +252,8 @@ static void learner_delete_instance(struct learner* l, struct instance* inst)
 {
 	khiter_t k;
 	k = kh_get_instance(l->instances, inst->iid);
-	kh_del_instance(l->instances, k);	// Remove instance from the map
-	instance_free(inst, l->acceptors);	// Free resources associated with the instance
+	kh_del_instance(l->instances, k);
+	instance_free(inst, l->acceptors);
 }
 
 /**
@@ -264,9 +268,11 @@ static struct instance* instance_new(int acceptors)
 	struct instance* inst;
 	inst = malloc(sizeof(struct instance));
 	memset(inst, 0, sizeof(struct instance));
-	inst->acks = malloc(sizeof(paxos_accepted*) * acceptors); // Allocate memory for acks
+	inst->acks = malloc(sizeof(paxos_accepted*) * acceptors);
+
 	for (i = 0; i < acceptors; ++i)
 		inst->acks[i] = NULL;
+
 	return inst;
 }
 
@@ -280,9 +286,10 @@ static void instance_free(struct instance* inst, int acceptors)
 {
 	int i;
 	for (i = 0; i < acceptors; i++)
-		if (inst->acks[i] != NULL) paxos_accepted_free(inst->acks[i]); // Free individual acks
-	free(inst->acks);	// Free the acks array
-	free(inst);			// Free the instance itself
+		if (inst->acks[i] != NULL) paxos_accepted_free(inst->acks[i]);
+
+	free(inst->acks);
+	free(inst);
 }
 
 /**
@@ -314,7 +321,6 @@ static void instance_update(struct instance* inst, paxos_accepted* accepted, int
 		return;
 	}
 	
-	// Add the received accepted value to the instance's acks array
 	instance_add_accept(inst, accepted);
 }
 

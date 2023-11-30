@@ -210,7 +210,7 @@ static void on_stats(evutil_socket_t fd, short event, void *arg)
 {
 	struct client* c = arg;
 	double mbps = (double)(c->stats.delivered_bytes * 8) / (1024*1024);
-//	printf("%d value/sec, %.2f Mbps, latency min %ld us max %ld us avg %ld us\n", c->stats.delivered_count, mbps, c->stats.min_latency,	c->stats.max_latency, c->stats.avg_latency);
+	// printf("%d value/sec, %.2f Mbps, latency min %ld us max %ld us avg %ld us\n", c->stats.delivered_count, mbps, c->stats.min_latency,	c->stats.max_latency, c->stats.avg_latency);
 	printf("%d;%ld;%ld;%ld\n", c->stats.delivered_count, c->stats.min_latency, c->stats.max_latency, c->stats.avg_latency);
 	FILE* pf; pf = fopen("stats.txt", "a+");
 	char Buff[1024]; memset(Buff, 0, sizeof(Buff));

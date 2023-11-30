@@ -228,17 +228,53 @@ static void evacceptor_handle_trim(struct peer* p, paxos_message* msg, void* arg
  * @param ev The event that occurred.
  * @param arg A pointer to the evacceptor structure.
  */
+unsigned long prevmsg = 0;
+unsigned long etprev = 0;
+
 static void send_acceptor_state(int fd, short ev, void* arg)
 {
+	struct evacceptor* a = (struct evacceptor*)arg;
+
+	int off;
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+
+	unsigned long nmsgnew = getcnt();
+	unsigned long nsec = tv.tv_sec - etprev;
+	unsigned long tsec = tv.tv_sec;
+	unsigned long diffmsg = nmsgnew - prevmsg;
+
+	if (nsec != 0)
+	{
+		struct evpaxos_config* c = getconfigfrompeers(a->peers);
+		int nreplicas = c->acceptors_count;
+		char Buff[1024]; memset(Buff, 0, sizeof(Buff));
+		off = strftime(Buff, sizeof(Buff), "%d %b %H:%M:%S;", localtime(&tv.tv_sec));
+		sprintf(Buff + off, "%d;%d;%ld;%ld;%ld\n", getpid(), nreplicas,nmsgnew, nsec, diffmsg/nsec );
+		etprev = tsec;
+		prevmsg = nmsgnew;
+		FILE* pf;
+		pf = fopen("msgstat.csv", "a+");
+		fputs(Buff, pf);
+		fflush(pf);
+		fclose(pf);
+	}
+	else
+	{
+//		sprintf(Buff + off, "pid;%d;msg;%ld;timediff;%ld;msgpersec;%ld\n", getpid(), nmsgnew, nsec, "N/A");
+	}
+
+	event_add(a->timer_ev, &a->timer_tv);
 	return; // 14.11.2023
 
-	struct evacceptor* a = (struct evacceptor*)arg;
 	paxos_message msg = {.type = PAXOS_ACCEPTOR_STATE};
 	// paxos_log_debug("EVACCEPTOR --> (Send State) Message Info: %x %x %x %x", msg.msg_info[0], msg.msg_info[1], msg.msg_info[2], msg.msg_info[3]);
 	peers_foreach_down_acceptor(a->peers, peer_send_paxos_message, (void*)&msg);
 	acceptor_set_current_state(a->state, &msg.u.state);
 	peers_foreach_client(a->peers, peer_send_paxos_message, &msg);
-	event_add(a->timer_ev, &a->timer_tv);
+
+
 }
 
 /**
