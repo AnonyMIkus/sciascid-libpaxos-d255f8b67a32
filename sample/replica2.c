@@ -179,7 +179,7 @@ int main(int argc, char const* argv[])
 
 	{
 	char Buff[1024]; memset(Buff, 0, sizeof(Buff));
-	sprintf(Buff, "time;pid;replicas;msg;timediff;msgpersec\n");
+	sprintf(Buff, "time;pid;msg;timediff;replicas;msgpersec\n");
 	FILE* pf;
 	pf = fopen("msgstat.csv", "a+");
 	fputs(Buff, pf);

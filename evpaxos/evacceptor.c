@@ -189,7 +189,7 @@ static void evacceptor_handle_repeat(struct peer* p, paxos_message* msg, void* a
 	struct evacceptor* a = (struct evacceptor*)arg;
 	// paxos_log_debug("EVACCEPTOR --> (Handle Repeat) repeat Message Info: %x %x %x %x", msg->msg_info[0], msg->msg_info[1], msg->msg_info[2], msg->msg_info[3]);
 	paxos_log_debug("Acceptor %u Handle repeat for iids %u-%u", get_aid(a->state), repeat->from, repeat->to);
-	peers_foreach_down_acceptor(a->peers, peer_send_paxos_message, msg);
+//	peers_foreach_down_acceptor(a->peers, peer_send_paxos_message, msg);
 
 	for (iid = repeat->from; iid <= repeat->to; ++iid) {
 		//paxos_log_debug("processing iid %ld", iid);
@@ -251,7 +251,7 @@ static void send_acceptor_state(int fd, short ev, void* arg)
 		int nreplicas = c->acceptors_count;
 		char Buff[1024]; memset(Buff, 0, sizeof(Buff));
 		off = strftime(Buff, sizeof(Buff), "%d %b %H:%M:%S;", localtime(&tv.tv_sec));
-		sprintf(Buff + off, "%d;%d;%ld;%ld;%ld\n", getpid(), nreplicas,nmsgnew, nsec, diffmsg/nsec );
+		sprintf(Buff + off, "%d;%ld;%ld;%d;%ld\n", getpid(), nmsgnew, nsec, nreplicas, diffmsg/nsec );
 		etprev = tsec;
 		prevmsg = nmsgnew;
 		FILE* pf;

@@ -398,55 +398,58 @@ int get_srcid_promise_and_adjust(paxos_promise* pr, struct acceptor* a)
 		return -1;
 
 	int found = storage_get_record(&a->store, pr->iid, &acc);
-
 	if (found)
 	{
 		ret = acc.src;
-		int bfound = 0;
 
-		for (int ii = 0; ii < acc.n_aids; ii++)
+		for(int j0=0;j0<pr->n_aids;j0++)
 		{
-			if (acc.aids[ii] == pr->iid)
-			{
-				bfound = 1;
-				break;
-			}
-		}
+			int bfound = 0;
 
-		if (bfound == 0)
-		{
-			acc.n_aids++;
-			uint32_t* paids = calloc(acc.n_aids, sizeof(uint32_t));
-
-			for (int jj = 0; jj < acc.n_aids - 1; jj++)
+			for (int ii = 0; ii < acc.n_aids; ii++)
 			{
-				paids[jj] = acc.aids[jj];
+				if (acc.aids[ii] == pr->aids[j0])
+				{
+					bfound = 1;
+					break;
+				}
 			}
 
-			paids[acc.n_aids - 1] = pr->iid;
-			free(acc.aids);
-			acc.aids = paids;
-			uint32_t* pblt = calloc(acc.n_aids, sizeof(uint32_t));
-
-			for (int jj = 0; jj < acc.n_aids - 1; jj++)
+			if (bfound == 0)
 			{
-				pblt[jj] = acc.ballots[jj];
+				acc.n_aids++;
+				uint32_t* paids = calloc(acc.n_aids, sizeof(uint32_t));
+
+				for (int jj = 0; jj < acc.n_aids - 1; jj++)
+				{
+					paids[jj] = acc.aids[jj];
+				}
+
+				paids[acc.n_aids - 1] = pr->aids[j0];
+				free(acc.aids);
+				acc.aids = paids;
+				uint32_t* pblt = calloc(acc.n_aids, sizeof(uint32_t));
+
+				for (int jj = 0; jj < acc.n_aids - 1; jj++)
+				{
+					pblt[jj] = acc.ballots[jj];
+				}
+
+				pblt[acc.n_aids - 1] = pr->ballots[j0];
+				free(acc.ballots);
+				acc.ballots = pblt;
+				uint32_t* pvb = calloc(acc.n_aids, sizeof(uint32_t));
+
+				for (int jj = 0; jj < acc.n_aids - 1; jj++)
+				{
+					pvb[jj] = acc.value_ballots[jj];
+				}
+
+				pvb[acc.n_aids - 1] = pr->value_ballots[j0];
+				free(acc.value_ballots);
+				acc.value_ballots = pvb;
+				storage_put_record(&a->store, &acc);
 			}
-
-			pblt[acc.n_aids - 1] = pr->ballots[0];
-			free(acc.ballots);
-			acc.ballots = pblt;
-			uint32_t* pvb = calloc(acc.n_aids, sizeof(uint32_t));
-
-			for (int jj = 0; jj < acc.n_aids - 1; jj++)
-			{
-				pvb[jj] = acc.value_ballots[jj];
-			}
-			pvb[acc.n_aids - 1] = pr->value_ballots[0];
-
-			free(acc.value_ballots);
-			acc.value_ballots = pvb;
-			storage_put_record(&a->store, &acc);
 		}
 	}
 
@@ -468,7 +471,59 @@ int get_srcid_accepted(paxos_accepted* ac, struct acceptor* a)
 	int found = storage_get_record(&a->store, ac->iid, &acc);
 
 	if (found)
+	{
 		ret = acc.src;
+		for (int j0 = 0; j0 < ac->n_aids; j0++)
+		{
+			int bfound = 0;
+
+			for (int ii = 0; ii < acc.n_aids; ii++)
+			{
+				if (acc.aids[ii] == ac->aids[j0])
+				{
+					bfound = 1;
+					break;
+				}
+			}
+
+			if (bfound == 0)
+			{
+				acc.n_aids++;
+				uint32_t* paids = calloc(acc.n_aids, sizeof(uint32_t));
+
+				for (int jj = 0; jj < acc.n_aids - 1; jj++)
+				{
+					paids[jj] = acc.aids[jj];
+				}
+
+				paids[acc.n_aids - 1] = ac->aids[j0];
+				free(acc.aids);
+				acc.aids = paids;
+				uint32_t* pblt = calloc(acc.n_aids, sizeof(uint32_t));
+
+				for (int jj = 0; jj < acc.n_aids - 1; jj++)
+				{
+					pblt[jj] = acc.ballots[jj];
+				}
+
+				pblt[acc.n_aids - 1] = ac->ballots[j0];
+				free(acc.ballots);
+				acc.ballots = pblt;
+				uint32_t* pvb = calloc(acc.n_aids, sizeof(uint32_t));
+
+				for (int jj = 0; jj < acc.n_aids - 1; jj++)
+				{
+					pvb[jj] = acc.value_ballots[jj];
+				}
+
+				pvb[acc.n_aids - 1] = ac->value_ballots[j0];
+				free(acc.value_ballots);
+				acc.value_ballots = pvb;
+				storage_put_record(&a->store, &acc);
+			}
+		}
+
+	}
 
 	if (storage_tx_commit(&a->store) != 0)
 		return -1;
