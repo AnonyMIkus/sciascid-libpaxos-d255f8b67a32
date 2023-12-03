@@ -35,6 +35,7 @@ struct acceptor
 {
 	int id;
 	iid_t trim_iid;
+	int subordinates;
 	struct storage store;
 };
 
@@ -47,6 +48,8 @@ static void paxos_accepted_to_preempted(int id, paxos_accepted* acc, paxos_messa
 	 return a->id;  
  }
 
+
+ void setsubordinates(struct acceptor* a, int isubs) { if (a != NULL) a->subordinates = isubs; }
 /**
  * Creates a new instance of the acceptor structure.
  *
@@ -391,6 +394,7 @@ static void paxos_accepted_to_preempted(int id, paxos_accepted* acc, paxos_messa
 int get_srcid_promise_and_adjust(paxos_promise* pr, struct acceptor* a)
 {
 	int ret = -1;
+	int promised = 0;
 	paxos_accepted acc;
 	memset(&acc, 0, sizeof(paxos_accepted));
 
@@ -448,6 +452,8 @@ int get_srcid_promise_and_adjust(paxos_promise* pr, struct acceptor* a)
 				pvb[acc.n_aids - 1] = pr->value_ballots[j0];
 				free(acc.value_ballots);
 				acc.value_ballots = pvb;
+
+				promised = acc.n_aids;
 				storage_put_record(&a->store, &acc);
 			}
 		}
@@ -456,12 +462,13 @@ int get_srcid_promise_and_adjust(paxos_promise* pr, struct acceptor* a)
 	if (storage_tx_commit(&a->store) != 0)
 		return -1;
 
-	return ret;
+	if (promised >= a->subordinates / 2) return ret; else return -1;
 }
 
 int get_srcid_accepted(paxos_accepted* ac, struct acceptor* a)
 {
 	int ret = -1;
+	int naccepted = 0;
 	paxos_accepted acc;
 	memset(&acc, 0, sizeof(paxos_accepted));
 
@@ -519,6 +526,8 @@ int get_srcid_accepted(paxos_accepted* ac, struct acceptor* a)
 				pvb[acc.n_aids - 1] = ac->value_ballots[j0];
 				free(acc.value_ballots);
 				acc.value_ballots = pvb;
+
+				naccepted = acc.n_aids;
 				storage_put_record(&a->store, &acc);
 			}
 		}
@@ -528,7 +537,7 @@ int get_srcid_accepted(paxos_accepted* ac, struct acceptor* a)
 	if (storage_tx_commit(&a->store) != 0)
 		return -1;
 
-	return ret;
+	if (naccepted >= a->subordinates / 2) return ret; else return -1;
 }
 
 int get_srcid_preempted(paxos_preempted* ac, struct acceptor* a)

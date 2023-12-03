@@ -49,6 +49,7 @@ void acceptor_set_current_state(struct acceptor* a, paxos_acceptor_state* out);
 int get_srcid_promise_and_adjust(paxos_promise* pr, struct acceptor* a);
 int get_srcid_accepted(paxos_accepted* ac, struct acceptor* a);
 int get_srcid_preempted(paxos_preempted* ac, struct acceptor* a);
+void setsubordinates(struct acceptor* a, int isubs);
 
 #ifdef __cplusplus
 }

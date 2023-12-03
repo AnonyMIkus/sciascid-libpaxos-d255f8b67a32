@@ -43,6 +43,7 @@ struct evacceptor
 	struct acceptor* state;
 	struct event* timer_ev;
 	struct timeval timer_tv;
+	int    subordinates;
 };
 
 /**
@@ -298,6 +299,57 @@ struct evacceptor* evacceptor_init_internal(int id, struct evpaxos_config* c, st
 	acceptor->state = acceptor_new(id);
 	acceptor->peers = p;
 	
+	int acceptor_count = c->acceptors_count;
+	int* scanned = malloc(sizeof(int) * acceptor_count);
+	for (int i = 0; i < acceptor_count; i++) scanned[i] = -1;
+	int* toscan = malloc(sizeof(int) * acceptor_count);
+	for (int i = 0; i < acceptor_count; i++) toscan[i] = -1;
+	if (c->acceptors[id].groupid != c->acceptors[id].parentid) 	toscan[0] = c->acceptors[id].groupid;
+	int ncnt = 0;
+
+	while (toscan[0] != -1)
+	{
+		
+		int grp = toscan[0]; 
+//		paxos_log_debug("Acceptor %d scanning group %d", id, grp);
+		for (int j = 0; j < acceptor_count - 1; j++) toscan[j] = toscan[j + 1]; toscan[acceptor_count - 1] = -1;
+		for (int j = 0; j < acceptor_count; j++) { if (scanned[j] == grp) break; else if (scanned[j] == -1) { scanned[j] = grp; break; } };
+
+		for (int i = 0; i < acceptor_count; i++)
+		{
+			if (c->acceptors[i].groupid == grp 
+				 && c->acceptors[i].groupid == c->acceptors[id].parentid )
+			{
+				ncnt++;
+			}
+			else
+				if (c->acceptors[i].parentid == grp /*  && c->acceptors[i].parentid != c->acceptors[i].groupid*/ )
+				{
+					ncnt++;
+					{
+						int fnd = 0;
+						for (int k = 0; k < acceptor_count; k++) if (scanned[k] == c->acceptors[i].groupid) { fnd = 1; break; }
+						if (fnd == 0)
+						{
+							for (int k = 0; k < acceptor_count; k++) if (toscan[k] == c->acceptors[i].groupid) { fnd = 1; break; }
+						}
+						if (fnd == 0)
+						{
+							for (int l = 0; l < acceptor_count; l++) { if (toscan[l] == c->acceptors[i].groupid) break; else if (toscan[l] == -1) { toscan[l] = c->acceptors[i].groupid; break; } };
+						}
+					}
+
+				}
+		}
+
+	}
+	free(scanned);
+	free(toscan);
+	acceptor->subordinates = ncnt;
+	setsubordinates(acceptor->state, ncnt);
+//	paxos_log_debug("Acceptor %d subordinates %d", id, ncnt);
+
+
 	// Subscribe the acceptor to handle various types of Paxos messages
 	peers_subscribe(p, PAXOS_PREPARE, evacceptor_handle_prepare, acceptor);
 	peers_subscribe(p, PAXOS_ACCEPT, evacceptor_handle_accept, acceptor);
@@ -306,6 +358,7 @@ struct evacceptor* evacceptor_init_internal(int id, struct evpaxos_config* c, st
 	peers_subscribe(p, PAXOS_PROMISE, evacceptor_fwd_promise, acceptor);
 	peers_subscribe(p, PAXOS_ACCEPTED, evacceptor_fwd_accepted, acceptor);
 	peers_subscribe(p, PAXOS_PREEMPTED, evacceptor_fwd_preempted, acceptor);
+
 
 	// Obtain the event base from the peers structure
 	struct event_base* base = peers_get_event_base(p);
@@ -330,6 +383,8 @@ struct evacceptor* evacceptor_init_internal(int id, struct evpaxos_config* c, st
  */
 struct evacceptor* evacceptor_init(int id, const char* config_file, struct event_base* base)
 {
+	paxos_log_debug("Acceptor %d entering init");
+
 	// Read the evpaxos configuration from the specified file.
 	struct evpaxos_config* config = evpaxos_config_read(config_file);
 
@@ -338,6 +393,7 @@ struct evacceptor* evacceptor_init(int id, const char* config_file, struct event
 	
 	// Get the total number of acceptors from the configuration
 	int acceptor_count = evpaxos_acceptor_count(config);
+
 
 	// Check if the provided acceptor ID is within valid range
 	if (id < 0 || id >= acceptor_count) {
@@ -358,6 +414,8 @@ struct evacceptor* evacceptor_init(int id, const char* config_file, struct event
 
 	// Initialize the evacceptor's internal components and return the pointer
 	struct evacceptor* acceptor = evacceptor_init_internal(id, config, peers);
+
+
 	evpaxos_config_free(config);
 	return acceptor;
 }

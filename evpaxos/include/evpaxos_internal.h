@@ -32,18 +32,15 @@
 #include "peers.h"
 #include "evpaxos.h"
 
-struct evlearner* evlearner_init_internal(struct evpaxos_config* config,
-	struct peers* peers, deliver_function f, void* arg);
+struct evlearner* evlearner_init_internal(struct evpaxos_config* config, struct peers* peers, deliver_function f, void* arg);
 
 void evlearner_free_internal(struct evlearner* l);
 		
-struct evacceptor* evacceptor_init_internal(int id,
-	struct evpaxos_config* config, struct peers* peers);
+struct evacceptor* evacceptor_init_internal(int id, struct evpaxos_config* config, struct peers* peers);
 	
 void evacceptor_free_internal(struct evacceptor* a);
 
-struct evproposer* evproposer_init_internal(int id,
-	struct evpaxos_config* config, struct peers* peers);
+struct evproposer* evproposer_init_internal(int id, struct evpaxos_config* config, struct peers* peers);
 
 void evproposer_free_internal(struct evproposer* p);
 
