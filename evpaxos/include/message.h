@@ -47,6 +47,7 @@ void send_paxos_repeat(struct bufferevent* bev, paxos_repeat* msg);
 void send_paxos_trim(struct bufferevent* bev, paxos_trim* msg);
 int recv_paxos_message(struct evbuffer* in, paxos_message* out);
 unsigned long getcnt();
+unsigned long getcntbytes();
 
 #ifdef __cplusplus
 }

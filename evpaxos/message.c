@@ -33,13 +33,22 @@
 
 volatile unsigned long nmsg = 0;
 volatile unsigned long inc = 1;
+volatile unsigned long nbytes = 0;
+
+
 
 unsigned long getcnt() 
 { 
 	paxos_log_debug("message counter %ld", __sync_fetch_and_add(&nmsg, 0));
 	return __sync_fetch_and_add(&nmsg, 0);
 }
- /**
+unsigned long getcntbytes()
+{
+	paxos_log_debug("message bytes counter %ld", __sync_fetch_and_add(&nbytes, 0));
+	return __sync_fetch_and_add(&nbytes, 0);
+}
+
+/**
   * Callback function to pack data and write it to a bufferevent.
   *
   * @param data A pointer to the bufferevent where the data should be written.
@@ -58,6 +67,8 @@ static int bufferevent_pack_data(void* data, const char* buf, size_t len)
 	}
 	*/
 	bufferevent_write(bev, buf, len);
+	__sync_fetch_and_add(&nbytes, len);
+
 	return 0;
 }
 

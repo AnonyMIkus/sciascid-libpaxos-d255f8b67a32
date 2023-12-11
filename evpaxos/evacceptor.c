@@ -231,6 +231,7 @@ static void evacceptor_handle_trim(struct peer* p, paxos_message* msg, void* arg
  */
 unsigned long prevmsg = 0;
 unsigned long etprev = 0;
+unsigned long bytesprev = 0;
 
 static void send_acceptor_state(int fd, short ev, void* arg)
 {
@@ -246,15 +247,19 @@ static void send_acceptor_state(int fd, short ev, void* arg)
 	unsigned long tsec = tv.tv_sec;
 	unsigned long diffmsg = nmsgnew - prevmsg;
 
+	unsigned long bytesnew = getcntbytes();
+	unsigned long bytesdiff = bytesnew - bytesprev;
+
 	if (nsec != 0)
 	{
 		struct evpaxos_config* c = getconfigfrompeers(a->peers);
 		int nreplicas = c->acceptors_count;
 		char Buff[1024]; memset(Buff, 0, sizeof(Buff));
 		off = strftime(Buff, sizeof(Buff), "%d %b %H:%M:%S;", localtime(&tv.tv_sec));
-		sprintf(Buff + off, "%d;%ld;%ld;%d;%ld\n", getpid(), nmsgnew, nsec, nreplicas, diffmsg/nsec );
+		sprintf(Buff + off, "%d;%ld;%ld;%d;%ld;%ld;%ld\n", getpid(), nmsgnew, nsec, nreplicas, diffmsg/nsec, bytesnew, bytesdiff/nsec );
 		etprev = tsec;
 		prevmsg = nmsgnew;
+		bytesprev = bytesnew;
 		FILE* pf;
 		pf = fopen("msgstat.csv", "a+");
 		fputs(Buff, pf);
