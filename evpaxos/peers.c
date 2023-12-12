@@ -40,6 +40,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#define BuffSizeSocket 128*1024
+
 struct peer
 {
 	int id;
@@ -581,7 +583,7 @@ static void on_accept(struct evconnlistener* l, evutil_socket_t fd, struct socka
 	bufferevent_enable(peer->bev, EV_READ | EV_WRITE);
 	socket_set_nodelay(fd);
 
-	evbuffer_expand(bufferevent_get_input(peer->bev), 2*1024*1024);
+	evbuffer_expand(bufferevent_get_input(peer->bev), BuffSizeSocket);
 
 	paxos_log_info("Accepted connection from %s:%d",
 		inet_ntoa(((struct sockaddr_in*)addr)->sin_addr),
@@ -605,7 +607,7 @@ static void connect_peer(struct peer* p)
 	bufferevent_socket_connect(p->bev,
 		(struct sockaddr*)&p->addr, sizeof(p->addr));
 	socket_set_nodelay(bufferevent_getfd(p->bev));
-	evbuffer_expand(bufferevent_get_input(p->bev), 2*1024*1024);
+	evbuffer_expand(bufferevent_get_input(p->bev), BuffSizeSocket);
 	paxos_log_info("Connect to %s:%d", inet_ntoa(p->addr.sin_addr), ntohs(p->addr.sin_port));
 }
 

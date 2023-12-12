@@ -207,7 +207,7 @@ static void evproposer_handle_acceptor_state(struct peer* p, paxos_message* msg,
  */
 static void evproposer_check_timeouts(evutil_socket_t fd, short event, void *arg)
 {
-	return; // 11:26 14.11.2023
+	// return; // 11:26 14.11.2023
 
 	struct evproposer* p = arg;
 	struct timeout_iterator* iter = proposer_timeout_iterator(p->state);
