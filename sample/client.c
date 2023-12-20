@@ -206,19 +206,35 @@ static void on_deliver(unsigned iid, char* value, size_t size, void* arg)
  * @param event The event information (unused).
  * @param arg A pointer to the client structure.
  */
-static void on_stats(evutil_socket_t fd, short event, void *arg)
-{
-	struct client* c = arg;
-	double mbps = (double)(c->stats.delivered_bytes * 8) / (1024*1024);
-	// printf("%d value/sec, %.2f Mbps, latency min %ld us max %ld us avg %ld us\n", c->stats.delivered_count, mbps, c->stats.min_latency,	c->stats.max_latency, c->stats.avg_latency);
-	printf("%d;%ld;%ld;%ld\n", c->stats.delivered_count, c->stats.min_latency, c->stats.max_latency, c->stats.avg_latency);
-	FILE* pf; pf = fopen("stats.txt", "a+");
-	char Buff[1024]; memset(Buff, 0, sizeof(Buff));
-	sprintf(Buff,"%d;%ld;%ld;%ld\n", c->stats.delivered_count, c->stats.min_latency, c->stats.max_latency, c->stats.avg_latency);
-	fputs( Buff,pf);
-	fflush(pf);
-	fclose(pf);
 
+unsigned long etprev = 0;
+
+static void on_stats(evutil_socket_t fd, short event, void* arg)
+{
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+
+	unsigned long nsec = tv.tv_sec - etprev;
+	unsigned long tsec = tv.tv_sec;
+	struct client* c = arg;
+
+	if (nsec != 0)
+	{
+		etprev = tsec;
+
+		double mbps = (double)(c->stats.delivered_bytes * 8) / (1024 * 1024);
+	// printf("%d value/sec, %.2f Mbps, latency min %ld us max %ld us avg %ld us\n", c->stats.delivered_count, mbps, c->stats.min_latency,	c->stats.max_latency, c->stats.avg_latency);
+		printf("%d;%ld;%ld;%ld\n", c->stats.delivered_count, c->stats.min_latency, c->stats.max_latency, c->stats.avg_latency);
+		FILE* pf; pf = fopen("statsclient.csv", "a+");
+		char Buff[1024]; memset(Buff, 0, sizeof(Buff));
+
+		int off = strftime(Buff, sizeof(Buff), "%d %b %H:%M:%S;", localtime(&tv.tv_sec));
+
+		sprintf(Buff + off, "$ld,%d;%ld;%ld;%ld\n",nsec,c->stats.delivered_count, c->stats.min_latency, c->stats.max_latency, c->stats.avg_latency);
+		fputs(Buff, pf);
+		fflush(pf);
+		fclose(pf);
+    }
 	memset(&c->stats, 0, sizeof(struct stats));
 	event_add(c->stats_ev, &c->stats_interval);
 }
