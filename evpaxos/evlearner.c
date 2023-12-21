@@ -70,7 +70,7 @@ static void peer_send_repeat(struct peer* p, void* arg)
  */
 static void evlearner_check_holes(evutil_socket_t fd, short event, void *arg)
 {
-	// return; // 11:26 14.11.2023
+	return; // 11:26 14.11.2023
 
 	paxos_repeat msg;
 	int chunks = 10;

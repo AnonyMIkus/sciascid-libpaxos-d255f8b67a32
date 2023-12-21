@@ -261,7 +261,7 @@ static void send_acceptor_state(int fd, short ev, void* arg)
 		prevmsg = nmsgnew;
 		bytesprev = bytesnew;
 		FILE* pf;
-		pf = fopen("msgstat30.csv", "a+");
+		pf = fopen("msgstat5.csv", "a+");
 		fputs(Buff, pf);
 		fflush(pf);
 		fclose(pf);
@@ -272,7 +272,7 @@ static void send_acceptor_state(int fd, short ev, void* arg)
 	}
 
 	event_add(a->timer_ev, &a->timer_tv);
-	// return; // 14.11.2023
+	return; // 14.11.2023
 
 	paxos_message msg = {.type = PAXOS_ACCEPTOR_STATE};
 	// paxos_log_debug("EVACCEPTOR --> (Send State) Message Info: %x %x %x %x", msg.msg_info[0], msg.msg_info[1], msg.msg_info[2], msg.msg_info[3]);
