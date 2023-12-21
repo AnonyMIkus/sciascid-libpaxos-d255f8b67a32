@@ -261,7 +261,7 @@ static void send_acceptor_state(int fd, short ev, void* arg)
 		prevmsg = nmsgnew;
 		bytesprev = bytesnew;
 		FILE* pf;
-		pf = fopen("msgstat5.csv", "a+");
+		pf = fopen("msgstat10.csv", "a+");
 		fputs(Buff, pf);
 		fflush(pf);
 		fclose(pf);
