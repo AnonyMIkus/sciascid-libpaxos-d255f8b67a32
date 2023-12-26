@@ -181,7 +181,7 @@ int main(int argc, char const* argv[])
 	char Buff[1024]; memset(Buff, 0, sizeof(Buff));
 	sprintf(Buff, "time;pid;msg;timediff;replicas;msgpersec;bytes;bytespersec\n");
 	FILE* pf;
-	pf = fopen("msgstat10.csv", "a+");
+	pf = fopen("msgstat.csv", "a+");
 	fputs(Buff, pf);
 	fflush(pf);
 	fclose(pf);

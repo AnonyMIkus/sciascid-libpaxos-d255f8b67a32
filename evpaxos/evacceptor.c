@@ -246,7 +246,6 @@ static void send_acceptor_state(int fd, short ev, void* arg)
 	unsigned long nsec = tv.tv_sec - etprev;
 	unsigned long tsec = tv.tv_sec;
 	unsigned long diffmsg = nmsgnew - prevmsg;
-
 	unsigned long bytesnew = getcntbytes();
 	unsigned long bytesdiff = bytesnew - bytesprev;
 
@@ -261,7 +260,7 @@ static void send_acceptor_state(int fd, short ev, void* arg)
 		prevmsg = nmsgnew;
 		bytesprev = bytesnew;
 		FILE* pf;
-		pf = fopen("msgstat10.csv", "a+");
+		pf = fopen("msgstat.csv", "a+");
 		fputs(Buff, pf);
 		fflush(pf);
 		fclose(pf);
